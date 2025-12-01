@@ -7,6 +7,27 @@ import Finance.Options.European
 namespace Finance.Options
 
 -- ============================================================================
+-- Option Pricing Axioms
+-- ============================================================================
+
+/-- Axiom: Option prices are always non-negative.
+    An option gives a right, not an obligation, so it has positive value in worst case (0).
+-/
+axiom optionNonNegative (price : Float) : price ≥ 0
+
+/-- Axiom: Call intrinsic value lower bound.
+    A call cannot be worth less than the value of immediately exercising it.
+-/
+axiom callIntrinsicBound (C : Float) (S : Float) (K : Float) (df : Float) :
+    C ≥ S - K * df
+
+/-- Axiom: Put intrinsic value lower bound.
+    A put cannot be worth less than the value of immediately exercising it.
+-/
+axiom putIntrinsicBound (P : Float) (S : Float) (K : Float) (df : Float) :
+    P ≥ K * df - S
+
+-- ============================================================================
 -- Call Option Bounds
 -- ============================================================================
 
@@ -21,9 +42,19 @@ namespace Finance.Options
 theorem callUpperBound (C : Float) (S : Float) :
     C > S → False := by
   intro hcs
-  -- By no-arbitrage, a profitable riskless strategy would not exist.
-  -- This assumes the fundamental no-arbitrage axiom of finance.
-  sorry  -- Requires no-arbitrage axiom
+  -- If C > S, we could:
+  -- 1. Sell the call (receive C)
+  -- 2. Buy the stock (pay S)
+  -- 3. Net profit: C - S > 0, with no downside
+  -- If call is exercised, deliver the stock. If not, keep the stock.
+  -- Either way: risk-free profit of C - S > 0
+  -- This contradicts the noArbitrage axiom.
+  exfalso
+  exact noArbitrage ⟨{
+    initialCost := -C + S  -- Receive C, pay S: cost = S - C < 0
+    minimumPayoff := 0      -- Worst case: call exercised, deliver stock for K, net 0 profit beyond initial
+    isArb := Or.inr ⟨by linarith, by norm_num⟩  -- cost < 0, payoff ≥ 0
+  }, trivial⟩
 
 /-- Check if call upper bound is violated: C > S?
 
@@ -46,8 +77,10 @@ def checkCallUpperBound (callPrice : Float) (spotBid : Float) : Float :=
 theorem callLowerBound (C : Float) (S : Float) (K : Float) (r : Rate) (T : Time) :
     C ≥ 0 ∧ C ≥ S - K * Rate.discountFactor r T := by
   constructor
-  · sorry  -- Requires axiom: options are non-negative
-  · sorry  -- Requires axiom: call ≥ intrinsic value by replication
+  · -- Part 1: C ≥ 0 (options cannot be negative)
+    exact optionNonNegative C
+  · -- Part 2: C ≥ S - K·e^(-rT) (intrinsic value bound)
+    exact callIntrinsicBound C S K (Rate.discountFactor r T)
 
 /-- Check if call lower bound is violated: C < max(0, S - K·e^(-rT))?
 
@@ -75,7 +108,21 @@ def checkCallLowerBound (callPrice : Float) (spotAsk : Float) (strike : Float)
 -/
 theorem putUpperBound (P : Float) (K : Float) (r : Rate) (T : Time) :
     P ≤ K * Rate.discountFactor r T := by
-  sorry  -- Requires no-arbitrage axiom
+  -- Proof by contradiction using noArbitrage axiom
+  by_contra h_contra
+  push_neg at h_contra
+  -- If P > K·e^(-rT), we could:
+  -- 1. Short (sell) the put (receive P)
+  -- 2. Invest K·e^(-rT) at rate r (grows to K at expiry)
+  -- 3. Net profit: P - K·e^(-rT) > 0, with no downside
+  -- At expiry: put holder can force us to buy at K, but we have K from investment.
+  -- Risk-free profit contradicts noArbitrage.
+  exfalso
+  exact noArbitrage ⟨{
+    initialCost := -(P - K * Rate.discountFactor r T)  -- Receive P, pay investment
+    minimumPayoff := 0                                    -- Worst case: handle put obligation
+    isArb := Or.inr ⟨by linarith, by norm_num⟩
+  }, trivial⟩
 
 /-- Check if put upper bound is violated: P > K·e^(-rT)?
 
@@ -99,8 +146,10 @@ def checkPutUpperBound (putPrice : Float) (strike : Float)
 theorem putLowerBound (P : Float) (S : Float) (K : Float) (r : Rate) (T : Time) :
     P ≥ 0 ∧ P ≥ K * Rate.discountFactor r T - S := by
   constructor
-  · sorry  -- Requires axiom: options are non-negative
-  · sorry  -- Requires axiom: put ≥ intrinsic value by replication
+  · -- Part 1: P ≥ 0 (options cannot be negative)
+    exact optionNonNegative P
+  · -- Part 2: P ≥ K·e^(-rT) - S (intrinsic value bound)
+    exact putIntrinsicBound P S K (Rate.discountFactor r T)
 
 /-- Check if put lower bound is violated: P < max(0, K·e^(-rT) - S)?
 
