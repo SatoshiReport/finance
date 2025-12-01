@@ -1,0 +1,8 @@
+/.lake/
+/lake-packages/
+/build/
+/lean_packages/
+/.elan/
+/.cache/
+/*.pyc
+__pycache__/
