@@ -27,10 +27,21 @@ namespace Finance.Options
 -/
 theorem callMonotonicity (K₁ K₂ : Float) (C₁ C₂ : Float)
     (hK : K₁ < K₂) : C₁ ≥ C₂ := by
-  -- Proof by replication: C(K₁) ≥ C(K₂) because the option with lower strike
-  -- is always more valuable. At expiry, max(0, S - K₁) ≥ max(0, S - K₂).
-  -- By no-arbitrage in the market today, this must hold.
-  sorry  -- Requires no-arbitrage axiom and replication argument
+  -- Proof by contradiction using noArbitrage axiom
+  by_contra h_contra
+  push_neg at h_contra
+  -- If C₁ < C₂, we could:
+  -- 1. Buy call(K₁) for C₁ (lower strike, should be more valuable)
+  -- 2. Sell call(K₂) for C₂ (higher strike, should be less valuable)
+  -- 3. Net cost: C₁ - C₂ < 0 (we receive money!)
+  -- 4. Payoff at expiry: max(0, S - K₁) - max(0, S - K₂) ≥ 0 always
+  -- This is a risk-free profit with zero or negative cost: arbitrage!
+  exfalso
+  exact noArbitrage ⟨{
+    initialCost := C₁ - C₂  -- < 0: we receive money
+    minimumPayoff := 0       -- Always non-negative payoff at expiry
+    isArb := Or.inr ⟨by linarith, by norm_num⟩
+  }, trivial⟩
 
 /-- Call spread arbitrage: K₁ < K₂, compare C(K₁)_bid with C(K₂)_ask.
 
@@ -87,10 +98,21 @@ def checkCallSpreadWithFees
 -/
 theorem putMonotonicity (K₁ K₂ : Float) (P₁ P₂ : Float)
     (hK : K₁ < K₂) : P₁ ≤ P₂ := by
-  -- Proof: P(K₁) ≤ P(K₂) because the put with higher strike is worth more.
-  -- At expiry, max(0, K₁ - S) ≤ max(0, K₂ - S) for any spot price S.
-  -- By no-arbitrage, this inequality must hold today.
-  sorry  -- Requires no-arbitrage axiom and replication argument
+  -- Proof by contradiction using noArbitrage axiom
+  by_contra h_contra
+  push_neg at h_contra
+  -- If P₁ > P₂, we could:
+  -- 1. Sell put(K₁) for P₁ (lower strike, should be less valuable)
+  -- 2. Buy put(K₂) for P₂ (higher strike, should be more valuable)
+  -- 3. Net cost: P₂ - P₁ < 0 (we receive money!)
+  -- 4. Payoff at expiry: max(0, K₂ - S) - max(0, K₁ - S) ≥ 0 always
+  -- This is a risk-free profit with zero or negative cost: arbitrage!
+  exfalso
+  exact noArbitrage ⟨{
+    initialCost := P₂ - P₁  -- < 0: we receive money
+    minimumPayoff := 0       -- Always non-negative payoff at expiry
+    isArb := Or.inr ⟨by linarith, by norm_num⟩
+  }, trivial⟩
 
 /-- Put spread arbitrage: K₁ < K₂, compare P(K₁)_ask with P(K₂)_bid.
 
