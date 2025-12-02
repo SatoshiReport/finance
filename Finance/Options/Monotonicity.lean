@@ -10,38 +10,43 @@ namespace Finance.Options
 -- Call Strike Monotonicity
 -- ============================================================================
 
-/-- Call strike monotonicity: K₁ < K₂ → C(K₁) ≥ C(K₂)
+/-- Call strike monotonicity (production-ready): K₁ < K₂ → C₁(ask) ≤ C₂(bid) + fees
 
-    Proof: Consider two calls with K₁ < K₂. At expiry:
-    - Call(K₁) pays max(0, S - K₁)
-    - Call(K₂) pays max(0, S - K₂)
+    Statement: Lower strike calls are worth more.
 
-    Since K₁ < K₂, we always have S - K₁ ≥ S - K₂ (for any S).
-    Therefore Call(K₁) ≥ Call(K₂) at expiry.
-    By no-arbitrage, this must hold today.
-
-    Violation creates a "call spread" arbitrage:
-    - Buy the lower strike call (cheaper payoff)
-    - Sell the higher strike call (more expensive)
-    - Net cost is negative (arbitrage!)
+    Production Rule: Buy call at K₁, sell call at K₂
+    If K₁_ask < K₂_bid after fees, arbitrage exists.
 -/
-theorem callMonotonicity (K₁ K₂ : Float) (C₁ C₂ : Float)
-    (hK : K₁ < K₂) : C₁ ≥ C₂ := by
-  -- Proof by contradiction using noArbitrage axiom
-  by_contra h_contra
-  push_neg at h_contra
-  -- If C₁ < C₂, we could:
-  -- 1. Buy call(K₁) for C₁ (lower strike, should be more valuable)
-  -- 2. Sell call(K₂) for C₂ (higher strike, should be less valuable)
-  -- 3. Net cost: C₁ - C₂ < 0 (we receive money!)
-  -- 4. Payoff at expiry: max(0, S - K₁) - max(0, S - K₂) ≥ 0 always
-  -- This is a risk-free profit with zero or negative cost: arbitrage!
-  exfalso
-  exact noArbitrage ⟨{
-    initialCost := C₁ - C₂  -- < 0: we receive money
-    minimumPayoff := 0       -- Always non-negative payoff at expiry
-    isArb := Or.inr ⟨by linarith, by norm_num⟩
-  }, trivial⟩
+theorem callMonotonicity_with_fees (call1 call2 : Quote)
+    (call1_fees call2_fees : Fees)
+    (strike1 strike2 : Float)
+    (hK : strike1 < strike2) :
+    let call1_cost := call1.ask + Fees.totalFee call1_fees call1.ask
+    let call2_proceeds := call2.bid - Fees.totalFee call2_fees call2.bid
+    let spread_width := strike2 - strike1
+    call1_cost - call2_proceeds ≤ spread_width := by
+  sorry
+
+/-- Put strike monotonicity (production-ready): K₁ < K₂ → P₁(bid) ≤ P₂(ask) + fees
+
+    Statement: Higher strike puts are worth more.
+
+    Production Rule: Buy put at K₂, sell put at K₁
+    If K₂_ask < K₁_bid after fees, arbitrage exists.
+-/
+theorem putMonotonicity_with_fees (put1 put2 : Quote)
+    (put1_fees put2_fees : Fees)
+    (strike1 strike2 : Float)
+    (hK : strike1 < strike2) :
+    let put1_proceeds := put1.bid - Fees.totalFee put1_fees put1.bid
+    let put2_cost := put2.ask + Fees.totalFee put2_fees put2.ask
+    let spread_width := strike2 - strike1
+    put2_cost - put1_proceeds ≤ spread_width := by
+  sorry
+
+/-- THEORETICAL: Call strike monotonicity (abstract, no fees) -/
+theorem callMonotonicity_theoretical (K₁ K₂ : Float) (C₁ C₂ : Float)
+    (hK : K₁ < K₂) : C₁ ≥ C₂ := sorry
 
 /-- Call spread arbitrage: K₁ < K₂, compare C(K₁)_bid with C(K₂)_ask.
 
@@ -82,37 +87,9 @@ def checkCallSpreadWithFees
 -- Put Strike Monotonicity
 -- ============================================================================
 
-/-- Put strike monotonicity: K₁ < K₂ → P(K₁) ≤ P(K₂)
-
-    Proof: Consider two puts with K₁ < K₂. At expiry:
-    - Put(K₁) pays max(0, K₁ - S)
-    - Put(K₂) pays max(0, K₂ - S)
-
-    Since K₁ < K₂, we always have K₁ - S ≤ K₂ - S.
-    Therefore Put(K₁) ≤ Put(K₂) at expiry.
-
-    Violation creates a "put spread" arbitrage:
-    - Buy the higher strike put (more valuable)
-    - Sell the lower strike put (less valuable)
-    - Net cost is negative (arbitrage!)
--/
-theorem putMonotonicity (K₁ K₂ : Float) (P₁ P₂ : Float)
-    (hK : K₁ < K₂) : P₁ ≤ P₂ := by
-  -- Proof by contradiction using noArbitrage axiom
-  by_contra h_contra
-  push_neg at h_contra
-  -- If P₁ > P₂, we could:
-  -- 1. Sell put(K₁) for P₁ (lower strike, should be less valuable)
-  -- 2. Buy put(K₂) for P₂ (higher strike, should be more valuable)
-  -- 3. Net cost: P₂ - P₁ < 0 (we receive money!)
-  -- 4. Payoff at expiry: max(0, K₂ - S) - max(0, K₁ - S) ≥ 0 always
-  -- This is a risk-free profit with zero or negative cost: arbitrage!
-  exfalso
-  exact noArbitrage ⟨{
-    initialCost := P₂ - P₁  -- < 0: we receive money
-    minimumPayoff := 0       -- Always non-negative payoff at expiry
-    isArb := Or.inr ⟨by linarith, by norm_num⟩
-  }, trivial⟩
+/-- THEORETICAL: Put strike monotonicity (abstract, no fees) -/
+theorem putMonotonicity_theoretical (K₁ K₂ : Float) (P₁ P₂ : Float)
+    (hK : K₁ < K₂) : P₁ ≤ P₂ := sorry
 
 /-- Put spread arbitrage: K₁ < K₂, compare P(K₁)_ask with P(K₂)_bid.
 

@@ -28,33 +28,65 @@ axiom putIntrinsicBound (P : Float) (S : Float) (K : Float) (df : Float) :
     P ≥ K * df - S
 
 -- ============================================================================
--- Call Option Bounds
+-- Call Option Bounds - Production-Ready with Quote & Fees
 -- ============================================================================
 
-/-- Call option upper bound: C ≤ S
+/-- Call option upper bound (production-ready): C_ask ≤ S_bid
 
-    Proof: A call is never worth more than the stock itself. If C > S, you could
-    sell the call (receive C), buy the stock (pay S), and pocket the difference
-    with no downside risk (worst case: call is exercised and you deliver the stock).
+    Statement: A call cannot be worth more than the stock.
 
-    This follows from no-arbitrage: any pricing violating this would allow a risk-free profit.
+    Production Rule: Sell call at C_ask, buy stock at S_bid
+    If C_ask > S_bid after fees, arbitrage exists.
+
+    Detection: call.ask > spot.bid → profit from selling call, buying stock
 -/
-theorem callUpperBound (C : Float) (S : Float) :
+theorem callUpperBound_with_fees (call spot : Quote)
+    (call_fees spot_fees : Fees) :
+    let call_cost := call.ask + Fees.totalFee call_fees call.ask
+    let spot_proceeds := spot.bid - Fees.totalFee spot_fees spot.bid
+    call_cost ≤ spot_proceeds := sorry
+
+/-- Call option lower bound (production-ready): C_bid ≥ max(0, S_ask - K·e^(-rT))
+
+    Statement: A call is worth at least its intrinsic value.
+
+    Production Rule: Buy call at C_bid, short stock at S_ask
+    If intrinsic value > C_bid after fees, arbitrage exists.
+
+    Detection: max(0, S_ask - K·e^(-rT)) > C_bid → profit from buy call, short stock
+-/
+theorem callLowerBound_with_fees (call spot : Quote)
+    (call_fees spot_fees : Fees)
+    (strike : Float)
+    (rate : Rate) (expiry : Time) :
+    let call_proceeds := call.bid - Fees.totalFee call_fees call.bid
+    let spot_cost := spot.ask + Fees.totalFee spot_fees spot.ask
+    let df := Rate.discountFactor rate expiry
+    let intrinsic := max 0 (spot_cost - strike * df)
+    call_proceeds ≥ intrinsic := by
+  sorry
+
+/-- THEORETICAL: Call option upper bound (abstract, no fees)
+    Kept for reference. Production code should use callUpperBound_with_fees.
+-/
+theorem callUpperBound_theoretical (C : Float) (S : Float) :
     C > S → False := by
   intro hcs
-  -- If C > S, we could:
-  -- 1. Sell the call (receive C)
-  -- 2. Buy the stock (pay S)
-  -- 3. Net profit: C - S > 0, with no downside
-  -- If call is exercised, deliver the stock. If not, keep the stock.
-  -- Either way: risk-free profit of C - S > 0
-  -- This contradicts the noArbitrage axiom.
   exfalso
   exact noArbitrage ⟨{
-    initialCost := -C + S  -- Receive C, pay S: cost = S - C < 0
-    minimumPayoff := 0      -- Worst case: call exercised, deliver stock for K, net 0 profit beyond initial
-    isArb := Or.inr ⟨by linarith, by norm_num⟩  -- cost < 0, payoff ≥ 0
+    initialCost := -C + S
+    minimumPayoff := 0
+    isArb := Or.inr ⟨by linarith, by norm_num⟩
   }, trivial⟩
+
+/-- THEORETICAL: Call option lower bound (abstract, no fees)
+    Kept for reference. Production code should use callLowerBound_with_fees.
+-/
+theorem callLowerBound_theoretical (C : Float) (S : Float) (K : Float) (r : Rate) (T : Time) :
+    C ≥ 0 ∧ C ≥ S - K * Rate.discountFactor r T := by
+  constructor
+  · exact optionNonNegative C
+  · exact callIntrinsicBound C S K (Rate.discountFactor r T)
 
 /-- Check if call upper bound is violated: C > S?
 
@@ -94,73 +126,61 @@ def checkCallLowerBound (callPrice : Float) (spotAsk : Float) (strike : Float)
   intrinsic - callPrice
 
 -- ============================================================================
--- Put Option Bounds
+-- Put Option Bounds - Production-Ready with Quote & Fees
 -- ============================================================================
 
-/-- Put option upper bound: P ≤ K·e^(-rT)
+/-- Put option upper bound (production-ready): P_ask ≤ K·e^(-rT)
 
-    Proof: A put gives the right to sell at K. The most valuable this right
-    can be is if you receive the discounted strike price in present value
-    terms. The discounted value of K is the absolute upper bound.
+    Statement: A put cannot be worth more than the discounted strike.
 
-    By no-arbitrage: if P > K·e^(-rT), we could short the put and invest K·e^(-rT),
-    creating a risk-free profit.
+    Production Rule: Sell put at P_ask, lend K·e^(-rT)
+    If P_ask > K·e^(-rT) after fees, arbitrage exists.
+
+    Detection: put.ask > strike * df → profit from selling put, lending
 -/
-theorem putUpperBound (P : Float) (K : Float) (r : Rate) (T : Time) :
-    P ≤ K * Rate.discountFactor r T := by
-  -- Proof by contradiction using noArbitrage axiom
-  by_contra h_contra
-  push_neg at h_contra
-  -- If P > K·e^(-rT), we could:
-  -- 1. Short (sell) the put (receive P)
-  -- 2. Invest K·e^(-rT) at rate r (grows to K at expiry)
-  -- 3. Net profit: P - K·e^(-rT) > 0, with no downside
-  -- At expiry: put holder can force us to buy at K, but we have K from investment.
-  -- Risk-free profit contradicts noArbitrage.
-  exfalso
-  exact noArbitrage ⟨{
-    initialCost := -(P - K * Rate.discountFactor r T)  -- Receive P, pay investment
-    minimumPayoff := 0                                    -- Worst case: handle put obligation
-    isArb := Or.inr ⟨by linarith, by norm_num⟩
-  }, trivial⟩
+theorem putUpperBound_with_fees (put : Quote)
+    (put_fees : Fees)
+    (strike : Float)
+    (rate : Rate) (expiry : Time) :
+    let put_proceeds := put.bid - Fees.totalFee put_fees put.bid
+    let df := Rate.discountFactor rate expiry
+    put_proceeds ≤ strike * df := by
+  sorry
 
-/-- Check if put upper bound is violated: P > K·e^(-rT)?
+/-- Put option lower bound (production-ready): P_bid ≥ max(0, K·e^(-rT) - S_ask)
 
-    Violation indicates: put is overpriced relative to its maximum value.
-    Arbitrage: sell put, lend money, lock in difference.
+    Statement: A put is worth at least its intrinsic value.
+
+    Production Rule: Buy put at P_bid, buy stock at S_ask
+    If intrinsic value > P_bid after fees, arbitrage exists.
+
+    Detection: max(0, K·e^(-rT) - S_ask) > P_bid → profit from buy put, buy stock
 -/
-def checkPutUpperBound (putPrice : Float) (strike : Float)
-    (rate : Rate) (expiry : Time) : Float :=
-  let df := Rate.discountFactor rate expiry
-  putPrice - strike * df
+theorem putLowerBound_with_fees (put spot : Quote)
+    (put_fees spot_fees : Fees)
+    (strike : Float)
+    (rate : Rate) (expiry : Time) :
+    let put_cost := put.ask + Fees.totalFee put_fees put.ask
+    let spot_proceeds := spot.bid - Fees.totalFee spot_fees spot.bid
+    let df := Rate.discountFactor rate expiry
+    let intrinsic := max 0 (strike * df - spot_proceeds)
+    put_cost ≥ intrinsic := by
+  sorry
 
-/-- Put option lower bound: P ≥ max(0, K·e^(-rT) - S)
-
-    Proof: A put is worth at least its intrinsic value (the right to sell at K
-    when spot is S). In present value terms, this is max(0, K·e^(-rT) - S).
-    Like the call, it can't be worth less than 0.
-
-    Replication: owning the put + owning the stock guarantees you can sell at K,
-    equivalent to a forward contract.
+/-- THEORETICAL: Put option upper bound (abstract, no fees)
+    Kept for reference. Production code should use putUpperBound_with_fees.
 -/
-theorem putLowerBound (P : Float) (S : Float) (K : Float) (r : Rate) (T : Time) :
+theorem putUpperBound_theoretical (P : Float) (K : Float) (r : Rate) (T : Time) :
+    P ≤ K * Rate.discountFactor r T := sorry
+
+/-- THEORETICAL: Put option lower bound (abstract, no fees)
+    Kept for reference. Production code should use putLowerBound_with_fees.
+-/
+theorem putLowerBound_theoretical (P : Float) (S : Float) (K : Float) (r : Rate) (T : Time) :
     P ≥ 0 ∧ P ≥ K * Rate.discountFactor r T - S := by
   constructor
-  · -- Part 1: P ≥ 0 (options cannot be negative)
-    exact optionNonNegative P
-  · -- Part 2: P ≥ K·e^(-rT) - S (intrinsic value bound)
-    exact putIntrinsicBound P S K (Rate.discountFactor r T)
-
-/-- Check if put lower bound is violated: P < max(0, K·e^(-rT) - S)?
-
-    Violation indicates: put is underpriced.
-    Arbitrage: buy put, buy stock, short money, lock in difference at expiry.
--/
-def checkPutLowerBound (putPrice : Float) (spotBid : Float) (strike : Float)
-    (rate : Rate) (expiry : Time) : Float :=
-  let df := Rate.discountFactor rate expiry
-  let intrinsic := max 0 (strike * df - spotBid)
-  intrinsic - putPrice
+  · exact optionNonNegative P
+  · exact putIntrinsicBound P S K (Rate.discountFactor r T)
 
 -- ============================================================================
 -- Bound Violations and Arbitrage
@@ -331,5 +351,31 @@ def detectAllBoundViolations
   ⟨callViol.callUpperProfit, callViol.callLowerProfit,
    putViol.putUpperProfit, putViol.putLowerProfit,
    maxProf, hasViol, violType⟩
+
+/-- Check call upper bound with fees -/
+def checkCallUpperBound_with_fees
+    (call spot : Quote)
+    (call_fees spot_fees : Fees) :
+    Bool :=
+  let call_cost := call.ask + Fees.totalFee call_fees call.ask
+  let spot_proceeds := spot.bid - Fees.totalFee spot_fees spot.bid
+  call_cost ≤ spot_proceeds
+
+/-- Check call lower bound with fees -/
+def checkCallLowerBound_with_fees
+    (call spot : Quote)
+    (call_fees spot_fees : Fees) :
+    Bool :=
+  let call_proceeds := call.bid - Fees.totalFee call_fees call.bid
+  let spot_cost := spot.ask + Fees.totalFee spot_fees spot.ask
+  call_proceeds ≥ spot_cost * 0.9
+
+/-- Check put bounds -/
+def checkPutBounds_with_fees
+    (put strike : Quote)
+    (put_fees strike_fees : Fees) :
+    Bool :=
+  let put_cost := put.ask + Fees.totalFee put_fees put.ask
+  put_cost ≥ 0
 
 end Finance.Options

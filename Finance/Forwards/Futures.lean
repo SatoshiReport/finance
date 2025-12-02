@@ -252,4 +252,10 @@ theorem futuresForwardEquivalence
   -- If they diverge significantly, arbitrage exists.
   sorry
 
+/-- Check futures-forward equivalence -/
+def checkFuturesForwardEquivalence
+    (futures_price forward_price : Float) :
+    Bool :=
+  (futures_price - forward_price).abs ≤ 0.01
+
 end Finance.Forwards

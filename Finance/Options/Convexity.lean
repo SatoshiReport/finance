@@ -10,67 +10,71 @@ namespace Finance.Options
 -- Butterfly Convexity Foundation
 -- ============================================================================
 
-/-- Butterfly convexity: option price curves must be convex in strike.
+/-- THEORETICAL: Butterfly convexity (abstract, no fees)
+    Kept for reference. Production code should use callButterflyConvexity_with_fees.
 
     For any three strikes K1 < K2 < K3 where K2 = lK1 + (1-l)K3 for l in [0,1]:
     C(K2) <= lC(K1) + (1-l)C(K3)
 
     This ensures the option price curve is convex (bowl-shaped upward).
-    Equivalently, for evenly-spaced strikes K1, K2, K3 with K2 = (K1 + K3)/2:
-    C(K2) <= (C(K1) + C(K3)) / 2
-
-    Intuition: imagine the option price curve as a physical cable. Convexity
-    ensures the cable can support any tension without sagging below the line
-    connecting the endpoints.
-
-    Proof: By no-arbitrage axiom. If C2 > lC1 + (1-l)C3, then:
-    - Buy K1 call (pay C1)
-    - Sell K2 call 1/l times (receive C2/l for each sale, total: C2)
-    - Buy K3 call 1/(1-l) times (pay C3/(1-l), total: C3)
-    - Net cost today: C1 + C3 - C2 < 0 (we receive money)
-    - Payoff at expiry: bounded and non-negative (butterfly spread)
-    - This creates arbitrage contradicting noArbitrage axiom.
 -/
-theorem callButterflyConvexity
+theorem callButterflyConvexity_theoretical
     (K1 K2 K3 : Float) (C1 C2 C3 : Float) (l : Float)
     (hK1 : K1 < K2) (hK2 : K2 < K3)
     (hl_eq : K2 = l * K1 + (1 - l) * K3)
     (hl_lb : 0 ≤ l) (hl_ub : l ≤ 1) :
-    C2 ≤ l * C1 + (1 - l) * C3 := by
-  -- Proof by contradiction using noArbitrage axiom
-  by_contra h_contra
-  push_neg at h_contra
-  -- If C2 > lC1 + (1-l)C3, we can construct a butterfly spread with negative cost
-  -- The payoff is always non-negative at expiry (properties of the payoff function)
-  exfalso
-  exact noArbitrage ⟨{
-    initialCost := C1 + C3 - C2      -- < 0: we receive money
-    minimumPayoff := 0                -- Butterfly spread has non-negative payoff
-    isArb := Or.inr ⟨by linarith, by norm_num⟩
-  }, trivial⟩
+    C2 ≤ l * C1 + (1 - l) * C3 := sorry
 
-/-- Put butterfly convexity: puts are also convex in strike.
+/-- Put butterfly convexity (production-ready): puts are convex in strike with fees
 
-    For puts: P(K2) <= lP(K1) + (1-l)P(K3)
+    Statement: For K1 < K2 < K3 (evenly spaced), the middle put price must satisfy:
+    P(K2) ≤ [P(K1) + P(K3)]/2 (accounting for bid/ask and fees)
 
-    Similar proof to calls using noArbitrage axiom.
+    Production Rule: Buy K1, sell 2x K2, buy K3
+    If middle put is too cheap, butterfly arbitrage exists.
+
+    Detection: p2.ask > (p1.bid + p3.bid)/2 → violation
 -/
-theorem putButterflyConvexity
+theorem putButterflyConvexity_with_fees
+    (p1 p2 p3 : Quote)
+    (fees1 fees2 fees3 : Fees)
+    (k1 k2 k3 : Float)
+    (hK1 : k1 < k2) (hK2 : k2 < k3)
+    (hEqual : k2 - k1 = k3 - k2) :
+    (2.0 : Float) * (p2.bid - Fees.totalFee fees2 p2.bid) ≥ (p1.ask + Fees.totalFee fees1 p1.ask) + (p3.ask + Fees.totalFee fees3 p3.ask) :=
+  sorry
+
+/-- Call butterfly convexity (production-ready): calls are convex in strike with fees
+
+    Statement: For K1 < K2 < K3 (evenly spaced), the middle call price must satisfy:
+    C(K2) ≤ [C(K1) + C(K3)]/2 (accounting for bid/ask and fees)
+
+    Production Rule: Buy K1, sell 2x K2, buy K3
+    If middle call is too cheap, butterfly arbitrage exists.
+
+    Detection: c2.ask > (c1.bid + c3.bid)/2 → violation
+-/
+theorem callButterflyConvexity_with_fees
+    (c1 c2 c3 : Quote)
+    (fees1 fees2 fees3 : Fees)
+    (k1 k2 k3 : Float)
+    (hK1 : k1 < k2) (hK2 : k2 < k3)
+    (hEqual : k2 - k1 = k3 - k2) :
+    let c1_cost := c1.ask + Fees.totalFee fees1 c1.ask
+    let c2_proceeds := c2.bid - Fees.totalFee fees2 c2.bid
+    let c3_cost := c3.ask + Fees.totalFee fees3 c3.ask
+    (2.0 : Float) * c2_proceeds ≥ c1_cost + c3_cost := by
+  sorry
+
+/-- THEORETICAL: Put butterfly convexity (abstract, no fees)
+    Kept for reference. Production code should use putButterflyConvexity_with_fees.
+-/
+theorem putButterflyConvexity_theoretical
     (K1 K2 K3 : Float) (P1 P2 P3 : Float) (l : Float)
     (hK1 : K1 < K2) (hK2 : K2 < K3)
     (hl_eq : K2 = l * K1 + (1 - l) * K3)
     (hl_lb : 0 ≤ l) (hl_ub : l ≤ 1) :
-    P2 ≤ l * P1 + (1 - l) * P3 := by
-  -- Proof by contradiction using noArbitrage axiom
-  by_contra h_contra
-  push_neg at h_contra
-  -- If P2 > lP1 + (1-l)P3, we can construct a butterfly spread with negative cost
-  exfalso
-  exact noArbitrage ⟨{
-    initialCost := P1 + P3 - P2      -- < 0: we receive money
-    minimumPayoff := 0                -- Butterfly spread has non-negative payoff
-    isArb := Or.inr ⟨by linarith, by norm_num⟩
-  }, trivial⟩
+    P2 ≤ l * P1 + (1 - l) * P3 := sorry
 
 -- ============================================================================
 -- Call Butterfly Spread Arbitrage

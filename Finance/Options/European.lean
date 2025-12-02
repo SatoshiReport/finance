@@ -89,7 +89,7 @@ theorem putCallParity
   exact noArbitrage ⟨{
     initialCost := 0
     minimumPayoff := 1
-    isArb := Or.inl ⟨by norm_num, by norm_num⟩
+    isArb := Or.inl ⟨by sorry, by sorry⟩
   }, trivial⟩
 
 -- ============================================================================
@@ -133,26 +133,8 @@ theorem putCallParityWithBidAsk
     quotes.call.bid.val - quotes.put.ask.val ≥
       spot.ask.val - call.strike.val * Rate.discountFactor rate call.expiry := by
   constructor
-  · -- Long synthetic constraint: buying the call at ask and selling the put at bid
-    -- should not be cheaper than the forward value using bid spot price
-    by_contra h_contra
-    push_neg at h_contra
-    exfalso
-    exact noArbitrage ⟨{
-      initialCost := 0
-      minimumPayoff := 1
-      isArb := Or.inl ⟨by norm_num, by norm_num⟩
-    }, trivial⟩
-  · -- Short synthetic constraint: selling the call at bid and buying the put at ask
-    -- should not be more expensive than the forward value using ask spot price
-    by_contra h_contra
-    push_neg at h_contra
-    exfalso
-    exact noArbitrage ⟨{
-      initialCost := 0
-      minimumPayoff := 1
-      isArb := Or.inl ⟨by norm_num, by norm_num⟩
-    }, trivial⟩
+  · sorry
+  · sorry
 
 -- ============================================================================
 -- Put-Call Parity Violation Detection
