@@ -41,17 +41,17 @@ structure Haircut where
 
 /-- Cash-and-carry arbitrage constraint: Repo + security = forward (production-ready with Quote).
 
-    Statement: With bid/ask spreads: forward.bid ≥ spot.ask × (1 + repo × T - haircut)
+    Statement: With bid/ask spreads: forward.bid.val ≥ spot.ask.val × (1 + repo × T - haircut)
 
     Intuition:
-    - Buy security at spot.ask, borrow via repo, sell forward at forward.bid
+    - Buy security at spot.ask.val, borrow via repo, sell forward at forward.bid.val
     - Lock in financing cost (repo rate - haircut loss)
-    - If forward.bid too high vs financing cost: reverse cash-and-carry arbitrage
-    - If forward.bid too low vs financing cost: cash-and-carry arbitrage
+    - If forward.bid.val too high vs financing cost: reverse cash-and-carry arbitrage
+    - If forward.bid.val too low vs financing cost: cash-and-carry arbitrage
 
     Production Rule:
-    - Buy spot at spot.ask, finance via repo, sell forward at forward.bid
-    - Net cash flow at inception = spot.ask - forward.bid × financing_factor
+    - Buy spot at spot.ask.val, finance via repo, sell forward at forward.bid.val
+    - Net cash flow at inception = spot.ask.val - forward.bid.val × financing_factor
     - Arbitrage if forward mispriced relative to financing cost
 -/
 theorem repo_forward_parity_with_quotes (forward spot : Quote)
@@ -59,8 +59,8 @@ theorem repo_forward_parity_with_quotes (forward spot : Quote)
     (repo_rate haircut tenor : Float)
     (hHaircut : 0 ≤ haircut ∧ haircut ≤ 1)
     (hTenor : tenor > 0) :
-    let spot_cost := spot.ask + Fees.totalFee spot_fees spot.ask
-    let forward_proceeds := forward.bid - Fees.totalFee forward_fees forward.bid
+    let spot_cost := spot.ask.val + Fees.totalFee spot_fees spot.ask.val
+    let forward_proceeds := forward.bid.val - Fees.totalFee forward_fees forward.bid.val
     let repo_financing := spot_cost * (repo_rate * tenor + haircut)
     let effective_forward := spot_cost + repo_financing
     forward_proceeds ≥ effective_forward - 0.01 * spot_cost := by
@@ -287,8 +287,8 @@ def checkRepoForwardParity_with_quotes
     (forward_fees spot_fees : Fees)
     (repo_rate haircut tenor : Float) :
     Bool :=
-  let spot_cost := spot.ask + Fees.totalFee spot_fees spot.ask
-  let forward_proceeds := forward.bid - Fees.totalFee forward_fees forward.bid
+  let spot_cost := spot.ask.val + Fees.totalFee spot_fees spot.ask.val
+  let forward_proceeds := forward.bid.val - Fees.totalFee forward_fees forward.bid.val
   let repo_financing := spot_cost * (repo_rate * tenor + haircut)
   let effective_forward := spot_cost + repo_financing
   forward_proceeds ≥ effective_forward - 0.01 * spot_cost

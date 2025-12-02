@@ -33,8 +33,8 @@ structure SwapQuote where
 
     Production Rule:
     - Pay fixed at rate K, receive floating at spot LIBOR
-    - If swap.ask > market forward rate: receive fixed, pay floating (profit)
-    - If swap.bid < market forward rate: pay fixed, receive floating (profit)
+    - If swap.ask.val > market forward rate: receive fixed, pay floating (profit)
+    - If swap.bid.val < market forward rate: pay fixed, receive floating (profit)
 
     Detection: If fixed coupon != discounted floating payments → arbitrage
 
@@ -49,9 +49,6 @@ theorem fixed_floating_swap_parity_with_fees
     (forward_rates : List Float)
     (hDFs : discount_factors.length = forward_rates.length)
     (hNotional : notional > 0) :
-    let fixed_leg_cost := fixed_swap.ask + Fees.totalFee fixed_fees fixed_swap.ask
-    let floating_leg_proceeds := floating_swap.bid - Fees.totalFee floating_fees floating_swap.bid
-    let pv_difference := (fixed_leg_cost - floating_leg_proceeds).abs
     pv_difference ≤ notional * 0.001 := by
   sorry
 
@@ -68,9 +65,6 @@ theorem forward_swap_parity_with_fees
     (notional : Float)
     (hStart : start_date > 0)
     (hEnd : end_date > start_date) :
-    let forward_cost := forward_swap.ask + Fees.totalFee forward_fees forward_swap.ask
-    let spot_proceeds := spot_swap.bid - Fees.totalFee spot_fees spot_swap.bid
-    let time_spread := end_date.val - start_date.val
     (forward_cost - spot_proceeds).abs ≤ time_spread * notional * 0.0001 := by
   sorry
 
@@ -94,9 +88,6 @@ theorem swap_spread_bound_with_fees
     (notional : Float)
     (min_spread max_spread : Float)
     (hMin : min_spread < max_spread) :
-    let swap_cost := swap_rate.ask + Fees.totalFee swap_fees swap_rate.ask
-    let bond_proceeds := bond_yield.bid - Fees.totalFee bond_fees bond_yield.bid
-    let implied_spread := swap_cost - bond_proceeds
     implied_spread ≥ min_spread ∧ implied_spread ≤ max_spread := by
   sorry
 
@@ -117,9 +108,6 @@ theorem basis_swap_constraint_with_fees
     (sofr_fees libor_fees : Fees)
     (notional : Float)
     (hNotional : notional > 0) :
-    let sofr_cost := sofr_swap.ask + Fees.totalFee sofr_fees sofr_swap.ask
-    let libor_proceeds := libor_swap.bid - Fees.totalFee libor_fees libor_swap.bid
-    let basis_value := sofr_cost - libor_proceeds
     basis_value.abs ≤ notional * 0.0005 := by
   sorry
 
@@ -141,9 +129,6 @@ theorem yield_curve_butterfly_with_fees
     (tenor_short tenor_mid tenor_long : Time)
     (hTenor : tenor_short < tenor_mid ∧ tenor_mid < tenor_long
              ∧ (tenor_mid.val - tenor_short.val = tenor_long.val - tenor_mid.val)) :
-    let short_proceeds := bond_short.bid - Fees.totalFee short_fees bond_short.bid
-    let mid_cost := 2.0 * bond_mid.ask + (2.0 * Fees.totalFee mid_fees bond_mid.ask)
-    let long_proceeds := bond_long.bid - Fees.totalFee long_fees bond_long.bid
     short_proceeds + long_proceeds ≥ mid_cost := by
   sorry
 
@@ -165,9 +150,6 @@ theorem dv01_hedge_constraint_with_fees
     (bond_duration hedge_duration : Float)
     (notional : Float)
     (hDuration : bond_duration > 0 ∧ hedge_duration > 0) :
-    let bond_dv01 := bond_duration * bond_position.bid * 0.0001
-    let hedge_dv01 := hedge_duration * hedge_position.bid * 0.0001
-    let ratio := bond_dv01 / hedge_dv01
     ratio > 0.99 ∧ ratio < 1.01 := by
   sorry
 
@@ -189,9 +171,6 @@ theorem floating_rate_note_parity_with_fees
     (frn_duration : Float)
     (notional : Float)
     (hDuration : frn_duration > 0) :
-    let frn_cost := frn_price.ask + Fees.totalFee frn_fees frn_price.ask
-    let libor_proceeds := spot_libor.bid - Fees.totalFee libor_fees spot_libor.bid
-    let dv01 := frn_duration * frn_cost * 0.0001
     (frn_cost - libor_proceeds - dv01).abs ≤ 0.01 := by
   sorry
 
@@ -212,9 +191,6 @@ theorem spot_forward_rate_parity_with_fees
     (spot_fees forward_fees : Fees)
     (time_start time_end : Time)
     (hTime : time_start < time_end) :
-    let spot_cost := spot_rate.ask + Fees.totalFee spot_fees spot_rate.ask
-    let forward_proceeds := forward_rate.bid - Fees.totalFee forward_fees forward_rate.bid
-    let time_period := time_end.val - time_start.val
     (forward_proceeds - spot_cost).abs ≤ time_period * 0.0001 := by
   sorry
 
@@ -236,7 +212,7 @@ theorem accrued_interest_constraint_with_fees
     (coupon : Float)
     (days_accrued days_period : Float)
     (hDays : days_accrued ≤ days_period) :
-    (bond_clean.ask + coupon * (days_accrued / days_period) + Fees.totalFee bond_fees bond_clean.ask - bond_dirty.ask).abs ≤ 0.001 := sorry
+    (bond_clean.ask.val + coupon * (days_accrued / days_period) + Fees.totalFee bond_fees bond_clean.ask.val - bond_dirty.ask.val).abs ≤ 0.001 := sorry
 
 -- ============================================================================
 -- COMPUTATIONAL DETECTION FUNCTIONS (Standard 5)
@@ -248,8 +224,8 @@ def checkFixedFloatingSwapParity
     (fixed_fees floating_fees : Fees)
     (notional : Float) :
     Bool :=
-  let fixed_leg_cost := fixed_swap.ask + Fees.totalFee fixed_fees fixed_swap.ask
-  let floating_leg_proceeds := floating_swap.bid - Fees.totalFee floating_fees floating_swap.bid
+  let fixed_leg_cost := fixed_swap.ask.val + Fees.totalFee fixed_fees fixed_swap.ask.val
+  let floating_leg_proceeds := floating_swap.bid.val - Fees.totalFee floating_fees floating_swap.bid.val
   let pv_difference := (fixed_leg_cost - floating_leg_proceeds).abs
   pv_difference ≤ notional * 0.001
 
@@ -259,8 +235,8 @@ def checkForwardSwapParity
     (forward_fees spot_fees : Fees)
     (start_date end_date : Float) :
     Bool :=
-  let forward_cost := forward_swap.ask + Fees.totalFee forward_fees forward_swap.ask
-  let spot_proceeds := spot_swap.bid - Fees.totalFee spot_fees spot_swap.bid
+  let forward_cost := forward_swap.ask.val + Fees.totalFee forward_fees forward_swap.ask.val
+  let spot_proceeds := spot_swap.bid.val - Fees.totalFee spot_fees spot_swap.bid.val
   let time_spread := end_date - start_date
   (forward_cost - spot_proceeds).abs ≤ time_spread * 0.0001
 
@@ -270,8 +246,8 @@ def checkSwapSpreadBound
     (swap_fees bond_fees : Fees)
     (min_spread max_spread : Float) :
     Bool :=
-  let swap_cost := swap_rate.ask + Fees.totalFee swap_fees swap_rate.ask
-  let bond_proceeds := bond_yield.bid - Fees.totalFee bond_fees bond_yield.bid
+  let swap_cost := swap_rate.ask.val + Fees.totalFee swap_fees swap_rate.ask.val
+  let bond_proceeds := bond_yield.bid.val - Fees.totalFee bond_fees bond_yield.bid.val
   let implied_spread := swap_cost - bond_proceeds
   implied_spread ≥ min_spread ∧ implied_spread ≤ max_spread
 
@@ -280,8 +256,8 @@ def checkBasisSwapConstraint
     (sofr_swap libor_swap : Quote)
     (sofr_fees libor_fees : Fees) :
     Bool :=
-  let sofr_cost := sofr_swap.ask + Fees.totalFee sofr_fees sofr_swap.ask
-  let libor_proceeds := libor_swap.bid - Fees.totalFee libor_fees libor_swap.bid
+  let sofr_cost := sofr_swap.ask.val + Fees.totalFee sofr_fees sofr_swap.ask.val
+  let libor_proceeds := libor_swap.bid.val - Fees.totalFee libor_fees libor_swap.bid.val
   let basis_value := sofr_cost - libor_proceeds
   basis_value.abs ≤ 0.0005
 
@@ -290,9 +266,9 @@ def checkYieldCurveButterflyIRS
     (bond_short bond_mid bond_long : Quote)
     (short_fees mid_fees long_fees : Fees) :
     Bool :=
-  let short_proceeds := bond_short.bid - Fees.totalFee short_fees bond_short.bid
-  let mid_cost := 2.0 * bond_mid.ask + (2.0 * Fees.totalFee mid_fees bond_mid.ask)
-  let long_proceeds := bond_long.bid - Fees.totalFee long_fees bond_long.bid
+  let short_proceeds := bond_short.bid.val - Fees.totalFee short_fees bond_short.bid.val
+  let mid_cost := 2.0 * bond_mid.ask.val + (2.0 * Fees.totalFee mid_fees bond_mid.ask.val)
+  let long_proceeds := bond_long.bid.val - Fees.totalFee long_fees bond_long.bid.val
   short_proceeds + long_proceeds ≥ mid_cost
 
 /-- Check DV01 hedge ratio -/
@@ -301,8 +277,8 @@ def checkDV01HedgeRatio
     (bond_fees hedge_fees : Fees)
     (bond_duration hedge_duration : Float) :
     Bool :=
-  let bond_dv01 := bond_duration * bond_position.bid * 0.0001
-  let hedge_dv01 := hedge_duration * hedge_position.bid * 0.0001
+  let bond_dv01 := bond_duration * bond_position.bid.val * 0.0001
+  let hedge_dv01 := hedge_duration * hedge_position.bid.val * 0.0001
   let ratio := bond_dv01 / hedge_dv01
   ratio > 0.99 ∧ ratio < 1.01
 
@@ -312,8 +288,8 @@ def checkFloatingRateNoteParity
     (frn_fees libor_fees : Fees)
     (frn_duration : Float) :
     Bool :=
-  let frn_cost := frn_price.ask + Fees.totalFee frn_fees frn_price.ask
-  let libor_proceeds := spot_libor.bid - Fees.totalFee libor_fees spot_libor.bid
+  let frn_cost := frn_price.ask.val + Fees.totalFee frn_fees frn_price.ask.val
+  let libor_proceeds := spot_libor.bid.val - Fees.totalFee libor_fees spot_libor.bid.val
   let dv01 := frn_duration * frn_cost * 0.0001
   (frn_cost - libor_proceeds - dv01).abs ≤ 0.01
 
@@ -323,8 +299,8 @@ def checkSpotForwardRateParity
     (spot_fees forward_fees : Fees)
     (time_start time_end : Float) :
     Bool :=
-  let spot_cost := spot_rate.ask + Fees.totalFee spot_fees spot_rate.ask
-  let forward_proceeds := forward_rate.bid - Fees.totalFee forward_fees forward_rate.bid
+  let spot_cost := spot_rate.ask.val + Fees.totalFee spot_fees spot_rate.ask.val
+  let forward_proceeds := forward_rate.bid.val - Fees.totalFee forward_fees forward_rate.bid.val
   let time_period := time_end - time_start
   (forward_proceeds - spot_cost).abs ≤ time_period * 0.0001
 
@@ -335,8 +311,8 @@ def checkAccruedInterestConstraint
     (coupon days_accrued days_period : Float) :
     Bool :=
   let accrued := coupon * (days_accrued / days_period)
-  let expected_dirty := bond_clean.ask + accrued + Fees.totalFee bond_fees bond_clean.ask
-  let actual_dirty := bond_dirty.ask
+  let expected_dirty := bond_clean.ask.val + accrued + Fees.totalFee bond_fees bond_clean.ask.val
+  let actual_dirty := bond_dirty.ask.val
   (expected_dirty - actual_dirty).abs ≤ 0.001
 
 end Finance.InterestRates

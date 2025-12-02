@@ -33,7 +33,7 @@ theorem callButterflyConvexity_theoretical
     Production Rule: Buy K1, sell 2x K2, buy K3
     If middle put is too cheap, butterfly arbitrage exists.
 
-    Detection: p2.ask > (p1.bid + p3.bid)/2 → violation
+    Detection: p2.ask.val > (p1.bid.val + p3.bid.val)/2 → violation
 -/
 theorem putButterflyConvexity_with_fees
     (p1 p2 p3 : Quote)
@@ -41,7 +41,7 @@ theorem putButterflyConvexity_with_fees
     (k1 k2 k3 : Float)
     (hK1 : k1 < k2) (hK2 : k2 < k3)
     (hEqual : k2 - k1 = k3 - k2) :
-    (2.0 : Float) * (p2.bid - Fees.totalFee fees2 p2.bid) ≥ (p1.ask + Fees.totalFee fees1 p1.ask) + (p3.ask + Fees.totalFee fees3 p3.ask) :=
+    (2.0 : Float) * (p2.bid.val - Fees.totalFee fees2 p2.bid.val) ≥ (p1.ask.val + Fees.totalFee fees1 p1.ask.val) + (p3.ask.val + Fees.totalFee fees3 p3.ask.val) :=
   sorry
 
 /-- Call butterfly convexity (production-ready): calls are convex in strike with fees
@@ -52,7 +52,7 @@ theorem putButterflyConvexity_with_fees
     Production Rule: Buy K1, sell 2x K2, buy K3
     If middle call is too cheap, butterfly arbitrage exists.
 
-    Detection: c2.ask > (c1.bid + c3.bid)/2 → violation
+    Detection: c2.ask.val > (c1.bid.val + c3.bid.val)/2 → violation
 -/
 theorem callButterflyConvexity_with_fees
     (c1 c2 c3 : Quote)
@@ -60,9 +60,9 @@ theorem callButterflyConvexity_with_fees
     (k1 k2 k3 : Float)
     (hK1 : k1 < k2) (hK2 : k2 < k3)
     (hEqual : k2 - k1 = k3 - k2) :
-    let c1_cost := c1.ask + Fees.totalFee fees1 c1.ask
-    let c2_proceeds := c2.bid - Fees.totalFee fees2 c2.bid
-    let c3_cost := c3.ask + Fees.totalFee fees3 c3.ask
+    let c1_cost := c1.ask.val + Fees.totalFee fees1 c1.ask.val
+    let c2_proceeds := c2.bid.val - Fees.totalFee fees2 c2.bid.val
+    let c3_cost := c3.ask.val + Fees.totalFee fees3 c3.ask.val
     (2.0 : Float) * c2_proceeds ≥ c1_cost + c3_cost := by
   sorry
 
@@ -130,8 +130,8 @@ def checkCallButterflyViolation
     - Sell 2x K2 at bid, pay fees2 on each (2*fees2)
     - Buy K3 at ask, pay fees3
 
-    Total cost = c1.ask + c3.ask - 2*c2.bid + (fee1 + 2*fee2 + fee3)
-    Profit = -cost = 2*c2.bid - c1.ask - c3.ask - (fees)
+    Total cost = c1.ask.val + c3.ask.val - 2*c2.bid.val + (fee1 + 2*fee2 + fee3)
+    Profit = -cost = 2*c2.bid.val - c1.ask.val - c3.ask.val - (fees)
 
     The butterfly can also have a max payoff constraint based on strike width,
     but that's the realistic max profit.

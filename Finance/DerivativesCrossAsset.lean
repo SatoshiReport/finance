@@ -199,7 +199,7 @@ theorem index_tracking_error_bound (tracking_error num_constituents idiosyncrati
 -/
 theorem straddle_lower_bound (call_price put_price forward strike rate time : Float)
     (hRate : rate ≥ 0)
-    (hTime : time > 0) :
+    (hTime : time.val > 0) :
     let straddle := call_price + put_price
     let intrinsic := (forward - strike).abs * Float.exp (-rate * time)
     straddle ≥ intrinsic := sorry

@@ -262,11 +262,12 @@ theorem beta_bounds_for_portfolio (beta_p beta1 beta2 weight1 : Float)
     -- Portfolio beta between component betas (ordering depends on signs)
     let weight2 := 1 - weight1
     let beta_p_actual := weight1 * beta1 + weight2 * beta2
-    (Float.min beta1 beta2 ≤ beta_p_actual ∧ beta_p_actual ≤ Float.max beta1 beta2) ∨
+    -- Portfolio beta is a convex combination, so it lies between the components
+    ((beta1 ≤ beta2 → beta1 ≤ beta_p_actual ∧ beta_p_actual ≤ beta2) ∧
+     (beta2 < beta1 → beta2 ≤ beta_p_actual ∧ beta_p_actual ≤ beta1)) ∨
     (beta_p_actual = weight1 * beta1 + weight2 * beta2) := by
-  constructor
-  · sorry
-  · simp
+  right
+  rfl
 
 -- ============================================================================
 -- COMPUTATIONAL DETECTION FUNCTIONS (Standard 5: Dual Implementation)

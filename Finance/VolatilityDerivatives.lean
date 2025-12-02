@@ -171,7 +171,7 @@ theorem vix_upper_bound (vix spot strike rate time : Float)
     (hSpot : spot > 0)
     (hStrike : strike > 0)
     (hRate : rate ≥ 0)
-    (hTime : time > 0) :
+    (hTime : time.val > 0) :
     -- VIX ≤ spot × e^(rate × time) / strike
     vix ≤ (spot / strike) * Float.exp (rate * time) := sorry
 

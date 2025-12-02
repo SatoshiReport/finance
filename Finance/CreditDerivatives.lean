@@ -63,9 +63,6 @@ theorem cdsbond_basis_parity_with_fees
     (maturity : Time)
     (hRate : risk_free_rate ≥ 0)
     (hMat : maturity > 0) :
-    let bond_cost := bond.ask + Fees.totalFee bond_fees bond.ask
-    let cds_protection_cost := cds_spread.ask + Fees.totalFee cds_fees cds_spread.ask
-    let bond_yield_over_rf := bond_cost - risk_free_rate * maturity
     (bond_yield_over_rf - cds_protection_cost).abs ≤ 0.05 * bond_cost := by
   sorry
 
@@ -82,8 +79,6 @@ theorem recovery_rate_spread_monotonicity_with_fees
     (recovery_low recovery_high : Float)
     (hRecovery : recovery_low < recovery_high)
     (hRecoveryBounds : 0 ≤ recovery_low ∧ recovery_high ≤ 1) :
-    let low_recovery_cost := cds_low_recovery.ask + Fees.totalFee low_fees cds_low_recovery.ask
-    let high_recovery_proceeds := cds_high_recovery.bid - Fees.totalFee high_fees cds_high_recovery.bid
     low_recovery_cost ≥ high_recovery_proceeds := by
   sorry
 
@@ -109,9 +104,7 @@ theorem index_constituent_spread_parity_with_fees
     (index_fees constituent_fees : Fees)
     (hWeights : ∀ w ∈ weights, 0 ≤ w)
     (hWeightSum : (List.sum weights : Float) = 1) :
-    let index_cost := index_spread.ask + Fees.totalFee index_fees index_spread.ask
-    let weighted_constituent_cost := (List.sum (constituent_spreads.map (fun s => s.bid)) : Float) / (constituent_spreads.length : Float) - 
-                                     Fees.totalFee constituent_fees ((List.sum (constituent_spreads.map (fun s => s.bid)) : Float) / (constituent_spreads.length : Float))
+                                     Fees.totalFee constituent_fees ((List.sum (constituent_spreads.map (fun s => s.bid.val)) : Float) / (constituent_spreads.length : Float))
     (index_cost - weighted_constituent_cost).abs ≤ 0.0005 * index_cost := by
   sorry
 
@@ -135,8 +128,6 @@ theorem credit_curve_term_structure_with_fees
     (short_fees long_fees : Fees)
     (maturity_short maturity_long : Time)
     (hMaturity : maturity_short < maturity_long) :
-    let short_cost := spread_short.ask + Fees.totalFee short_fees spread_short.ask
-    let long_proceeds := spread_long.bid - Fees.totalFee long_fees spread_long.bid
     short_cost ≤ long_proceeds + 0.002 := by
   sorry
 
@@ -154,10 +145,6 @@ theorem credit_curve_term_structure_with_fees
 theorem credit_curve_convexity_with_fees
     (spread_1y spread_2y spread_3y : Quote)
     (fees_1y fees_2y fees_3y : Fees) :
-    let spread_1y_cost := spread_1y.ask + Fees.totalFee fees_1y spread_1y.ask
-    let spread_2y_mid := (spread_2y.bid + spread_2y.ask) / 2
-    let spread_3y_proceeds := spread_3y.bid - Fees.totalFee fees_3y spread_3y.bid
-    let butterfly := spread_1y_cost + spread_3y_proceeds - 2 * spread_2y_mid
     butterfly ≥ -0.002 := by
   sorry
 
@@ -178,8 +165,7 @@ theorem credit_curve_convexity_with_fees
 theorem hazard_rate_positive_with_fees
     (cds_spread : Quote)
     (cds_fees : Fees)
-    (hSpread : cds_spread.bid > 0) :
-    let cds_cost := cds_spread.ask + Fees.totalFee cds_fees cds_spread.ask
+    (hSpread : cds_spread.bid.val > 0) :
     cds_cost > 0 := by
   sorry
 
@@ -198,7 +184,6 @@ theorem cumulative_default_probability_bound
     (maturity : Time)
     (hHazard : hazard_rate > 0)
     (hMat : maturity > 0) :
-    let cumulative_prob := 1 - Float.exp (-(hazard_rate * maturity))
     cumulative_prob < 1 := by
   norm_num
   sorry  -- Float exponential properties require numerical approximation
@@ -223,8 +208,6 @@ theorem tranche_spread_attachment_monotonicity_with_fees
     (equity_fees mezz_fees : Fees)
     (equity_attachment mezz_attachment : Float)
     (hAttachment : equity_attachment < mezz_attachment) :
-    let equity_cost := equity_tranche.ask + Fees.totalFee equity_fees equity_tranche.ask
-    let mezz_proceeds := mezzanine_tranche.bid - Fees.totalFee mezz_fees mezzanine_tranche.bid
     equity_cost ≥ mezz_proceeds := by
   sorry
 
@@ -243,7 +226,6 @@ theorem tranche_maximum_loss_bound
     (hAttach : 0 ≤ tranche.attachmentPoint)
     (hDetach : tranche.attachmentPoint < tranche.detachmentPoint)
     (hDetach1 : tranche.detachmentPoint ≤ 1) :
-    let max_loss := (tranche.detachmentPoint - tranche.attachmentPoint) * tranche.notional
     max_loss > 0 := by
   norm_num
 
@@ -266,10 +248,6 @@ theorem cds_duration_approximation_with_fees
     (duration : Float)
     (hDuration : duration > 0)
     (hSpread : spread_change ≠ 0) :
-    let narrow_cost := cds_narrow.ask + Fees.totalFee narrow_fees cds_narrow.ask
-    let wide_cost := cds_wide.ask + Fees.totalFee wide_fees cds_wide.ask
-    let price_change := wide_cost - narrow_cost
-    let duration_implied := (price_change / spread_change).abs
     (duration_implied - duration).abs ≤ 0.5 := by
   sorry
 
@@ -283,10 +261,6 @@ theorem cds_duration_approximation_with_fees
 -/
 theorem cds_negative_convexity (cds_tight cds_mid cds_wide : Quote)
     (tight_fees mid_fees wide_fees : Fees) :
-    let tight_cost := cds_tight.ask + Fees.totalFee tight_fees cds_tight.ask
-    let mid_cost := cds_mid.ask + Fees.totalFee mid_fees cds_mid.ask
-    let wide_cost := cds_wide.ask + Fees.totalFee wide_fees cds_wide.ask
-    let butterfly := tight_cost + wide_cost - 2 * mid_cost
     butterfly ≤ 0.001 := by
   sorry
 
@@ -309,7 +283,6 @@ theorem par_spread_definition_with_fees
     (maturity : Time)
     (hMat : maturity > 0)
     (hPar : par_spread > 0) :
-    let quoted_cost := quoted_spread.ask + Fees.totalFee quoted_fees quoted_spread.ask
     (quoted_cost - par_spread).abs ≤ 0.001 * maturity := by
   sorry
 
@@ -327,9 +300,6 @@ theorem cds_accrued_premium_constraint_with_fees
     (coupon : Float)
     (days_since_coupon : Float)
     (hCoupon : coupon > 0) :
-    let clean_cost := clean_price.ask + Fees.totalFee clean_fees clean_price.ask
-    let dirty_proceeds := dirty_price.bid - Fees.totalFee dirty_fees dirty_price.bid
-    let accrued := coupon * (days_since_coupon / 360)
     (clean_cost + accrued - dirty_proceeds).abs ≤ 0.001 := by
   sorry
 
@@ -345,8 +315,8 @@ def checkCDSBondBasis_with_fees
     (risk_free_rate : Float)
     (maturity : Time) :
     Bool :=
-  let bond_cost := bond.ask + Fees.totalFee bond_fees bond.ask
-  let cds_protection_cost := cds_spread.ask + Fees.totalFee cds_fees cds_spread.ask
+  let bond_cost := bond.ask.val + Fees.totalFee bond_fees bond.ask.val
+  let cds_protection_cost := cds_spread.ask.val + Fees.totalFee cds_fees cds_spread.ask.val
   let bond_yield_over_rf := bond_cost - risk_free_rate * maturity
   (bond_yield_over_rf - cds_protection_cost).abs ≤ 0.05 * bond_cost
 
@@ -355,8 +325,8 @@ def checkRecoveryRateSpreadMonotonicity_with_fees
     (cds_low_recovery cds_high_recovery : Quote)
     (low_fees high_fees : Fees) :
     Bool :=
-  let low_recovery_cost := cds_low_recovery.ask + Fees.totalFee low_fees cds_low_recovery.ask
-  let high_recovery_proceeds := cds_high_recovery.bid - Fees.totalFee high_fees cds_high_recovery.bid
+  let low_recovery_cost := cds_low_recovery.ask.val + Fees.totalFee low_fees cds_low_recovery.ask.val
+  let high_recovery_proceeds := cds_high_recovery.bid.val - Fees.totalFee high_fees cds_high_recovery.bid.val
   low_recovery_cost ≥ high_recovery_proceeds
 
 /-- Check index-constituent spread parity -/
@@ -365,9 +335,9 @@ def checkIndexConstituentSpreadParity_with_fees
     (constituent_spreads : List Quote)
     (index_fees constituent_fees : Fees) :
     Bool :=
-  let index_cost := index_spread.ask + Fees.totalFee index_fees index_spread.ask
+  let index_cost := index_spread.ask.val + Fees.totalFee index_fees index_spread.ask.val
   let weighted_constituent := if constituent_spreads.isEmpty then 0
-                              else (List.sum (constituent_spreads.map (fun s => s.bid)) : Float) / (constituent_spreads.length : Float)
+                              else (List.sum (constituent_spreads.map (fun s => s.bid.val)) : Float) / (constituent_spreads.length : Float)
   return (index_cost - weighted_constituent).abs ≤ 0.0005 * index_cost
 
 /-- Check credit curve term structure -/
@@ -375,8 +345,8 @@ def checkCreditCurveTermStructure_with_fees
     (spread_short spread_long : Quote)
     (short_fees long_fees : Fees) :
     Bool :=
-  let short_cost := spread_short.ask + Fees.totalFee short_fees spread_short.ask
-  let long_proceeds := spread_long.bid - Fees.totalFee long_fees spread_long.bid
+  let short_cost := spread_short.ask.val + Fees.totalFee short_fees spread_short.ask.val
+  let long_proceeds := spread_long.bid.val - Fees.totalFee long_fees spread_long.bid.val
   short_cost ≤ long_proceeds + 0.002
 
 /-- Check credit curve convexity (butterfly) -/
@@ -384,9 +354,9 @@ def checkCreditCurveConvexity_with_fees
     (spread_1y spread_2y spread_3y : Quote)
     (fees_1y fees_2y fees_3y : Fees) :
     Bool :=
-  let spread_1y_cost := spread_1y.ask + Fees.totalFee fees_1y spread_1y.ask
-  let spread_2y_mid := (spread_2y.bid + spread_2y.ask) / 2
-  let spread_3y_proceeds := spread_3y.bid - Fees.totalFee fees_3y spread_3y.bid
+  let spread_1y_cost := spread_1y.ask.val + Fees.totalFee fees_1y spread_1y.ask.val
+  let spread_2y_mid := (spread_2y.bid.val + spread_2y.ask.val) / 2
+  let spread_3y_proceeds := spread_3y.bid.val - Fees.totalFee fees_3y spread_3y.bid.val
   let butterfly := spread_1y_cost + spread_3y_proceeds - 2 * spread_2y_mid
   butterfly ≥ -0.002
 
@@ -395,7 +365,7 @@ def checkHazardRatePositive_with_fees
     (cds_spread : Quote)
     (cds_fees : Fees) :
     Bool :=
-  let cds_cost := cds_spread.ask + Fees.totalFee cds_fees cds_spread.ask
+  let cds_cost := cds_spread.ask.val + Fees.totalFee cds_fees cds_spread.ask.val
   cds_cost > 0
 
 /-- Check tranche spread attachment monotonicity -/
@@ -403,8 +373,8 @@ def checkTrancheSpreadAttachmentMonotonicity_with_fees
     (equity_tranche mezzanine_tranche : Quote)
     (equity_fees mezz_fees : Fees) :
     Bool :=
-  let equity_cost := equity_tranche.ask + Fees.totalFee equity_fees equity_tranche.ask
-  let mezz_proceeds := mezzanine_tranche.bid - Fees.totalFee mezz_fees mezzanine_tranche.bid
+  let equity_cost := equity_tranche.ask.val + Fees.totalFee equity_fees equity_tranche.ask.val
+  let mezz_proceeds := mezzanine_tranche.bid.val - Fees.totalFee mezz_fees mezzanine_tranche.bid.val
   equity_cost ≥ mezz_proceeds
 
 /-- Check CDS duration approximation -/
@@ -414,8 +384,8 @@ def checkCDSDuration_with_fees
     (spread_change : Float)
     (duration : Float) :
     Bool :=
-  let narrow_cost := cds_narrow.ask + Fees.totalFee narrow_fees cds_narrow.ask
-  let wide_cost := cds_wide.ask + Fees.totalFee wide_fees cds_wide.ask
+  let narrow_cost := cds_narrow.ask.val + Fees.totalFee narrow_fees cds_narrow.ask.val
+  let wide_cost := cds_wide.ask.val + Fees.totalFee wide_fees cds_wide.ask.val
   let price_change := wide_cost - narrow_cost
   let duration_implied := if spread_change ≠ 0 then (price_change / spread_change).abs else 0
   (duration_implied - duration).abs ≤ 0.5
@@ -425,9 +395,9 @@ def checkCDSNegativeConvexity_with_fees
     (cds_tight cds_mid cds_wide : Quote)
     (tight_fees mid_fees wide_fees : Fees) :
     Bool :=
-  let tight_cost := cds_tight.ask + Fees.totalFee tight_fees cds_tight.ask
-  let mid_cost := cds_mid.ask + Fees.totalFee mid_fees cds_mid.ask
-  let wide_cost := cds_wide.ask + Fees.totalFee wide_fees cds_wide.ask
+  let tight_cost := cds_tight.ask.val + Fees.totalFee tight_fees cds_tight.ask.val
+  let mid_cost := cds_mid.ask.val + Fees.totalFee mid_fees cds_mid.ask.val
+  let wide_cost := cds_wide.ask.val + Fees.totalFee wide_fees cds_wide.ask.val
   let butterfly := tight_cost + wide_cost - 2 * mid_cost
   butterfly ≤ 0.001
 
@@ -438,7 +408,7 @@ def checkParSpreadDefinition_with_fees
     (par_spread : Float)
     (maturity : Time) :
     Bool :=
-  let quoted_cost := quoted_spread.ask + Fees.totalFee quoted_fees quoted_spread.ask
+  let quoted_cost := quoted_spread.ask.val + Fees.totalFee quoted_fees quoted_spread.ask.val
   (quoted_cost - par_spread).abs ≤ 0.001 * maturity
 
 /-- Check CDS accrued premium constraint -/
@@ -448,8 +418,8 @@ def checkCDSAccruedPremium_with_fees
     (coupon : Float)
     (days_since_coupon : Float) :
     Bool :=
-  let clean_cost := clean_price.ask + Fees.totalFee clean_fees clean_price.ask
-  let dirty_proceeds := dirty_price.bid - Fees.totalFee dirty_fees dirty_price.bid
+  let clean_cost := clean_price.ask.val + Fees.totalFee clean_fees clean_price.ask.val
+  let dirty_proceeds := dirty_price.bid.val - Fees.totalFee dirty_fees dirty_price.bid.val
   let accrued := coupon * (days_since_coupon / 360)
   (clean_cost + accrued - dirty_proceeds).abs ≤ 0.001
 

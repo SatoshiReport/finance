@@ -268,7 +268,7 @@ theorem basis_decay (basis carry tenor_remaining spot : Float)
 -/
 theorem commodity_call_put_parity (call put forward strike rate time : Float)
     (hRate : rate ≥ 0)
-    (hTime : time > 0) :
+    (hTime : time.val > 0) :
     -- C - P = (F - K) × e^(-rT)
     let df := Float.exp (-rate * time)
     call - put = (forward - strike) * df := by

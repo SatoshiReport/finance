@@ -21,8 +21,8 @@ theorem callMonotonicity_with_fees (call1 call2 : Quote)
     (call1_fees call2_fees : Fees)
     (strike1 strike2 : Float)
     (hK : strike1 < strike2) :
-    let call1_cost := call1.ask + Fees.totalFee call1_fees call1.ask
-    let call2_proceeds := call2.bid - Fees.totalFee call2_fees call2.bid
+    let call1_cost := call1.ask.val + Fees.totalFee call1_fees call1.ask.val
+    let call2_proceeds := call2.bid.val - Fees.totalFee call2_fees call2.bid.val
     let spread_width := strike2 - strike1
     call1_cost - call2_proceeds ≤ spread_width := by
   sorry
@@ -38,8 +38,8 @@ theorem putMonotonicity_with_fees (put1 put2 : Quote)
     (put1_fees put2_fees : Fees)
     (strike1 strike2 : Float)
     (hK : strike1 < strike2) :
-    let put1_proceeds := put1.bid - Fees.totalFee put1_fees put1.bid
-    let put2_cost := put2.ask + Fees.totalFee put2_fees put2.ask
+    let put1_proceeds := put1.bid.val - Fees.totalFee put1_fees put1.bid.val
+    let put2_cost := put2.ask.val + Fees.totalFee put2_fees put2.ask.val
     let spread_width := strike2 - strike1
     put2_cost - put1_proceeds ≤ spread_width := by
   sorry
@@ -153,7 +153,7 @@ def checkAdjacentCallMonotonicity
   if k1 < k2 then
     -- C(K₁)_ask should be ≥ C(K₂)_bid for monotonicity
     -- Violation if C(K₁)_ask < C(K₂)_bid after fees
-    checkCallSpreadWithFees c1.ask c2.bid k1 k2 fees1 fees2
+    checkCallSpreadWithFees c1.ask.val c2.bid.val k1 k2 fees1 fees2
   else
     0  -- invalid input
 
@@ -184,7 +184,7 @@ def checkAdjacentPutMonotonicity
   if k1 < k2 then
     -- P(K₁)_ask should be ≤ P(K₂)_bid for monotonicity
     -- Violation if P(K₁)_ask > P(K₂)_bid after fees
-    checkPutSpreadWithFees p2.ask p1.bid k1 k2 fees2 fees1
+    checkPutSpreadWithFees p2.ask.val p1.bid.val k1 k2 fees2 fees1
   else
     0
 

@@ -23,9 +23,6 @@ theorem swap_treasury_basis_with_fees
     (treasury_fees : Fees)
     (credit_spread : Float)
     (hSpread : credit_spread ≥ 0) :
-    let swap_midpoint := (swap_ask + swap_bid) / 2
-    let treasury_yield := treasury.bid + Fees.totalFee treasury_fees treasury.bid / 100
-    let basis := swap_midpoint - treasury_yield
     basis ≥ credit_spread - 0.01 := sorry
 
 /-- Swap Spread Bounds: Can't be negative (credit worthiness premium).
@@ -38,8 +35,6 @@ theorem swap_treasury_basis_with_fees
 theorem swap_spread_nonnegative_with_fees
     (swap : Quote) (treasury : Quote)
     (swap_fees treasury_fees : Fees) :
-    let swap_cost := swap.ask + Fees.totalFee swap_fees swap.ask
-    let treasury_cost := treasury.ask + Fees.totalFee treasury_fees treasury.ask
     swap_cost ≥ treasury_cost := sorry
 
 /-- Cross-Currency Basis: USD/EUR swap basis reflects FX forward points.
@@ -54,12 +49,8 @@ theorem cross_currency_basis_with_fees
     (fx_forward fx_spot : Quote)
     (fx_fees : Fees)
     (time : Time) :
-    let interest_diff := (usd_rate.val - eur_rate.val) * time.val
-    let fx_forward_cost := fx_forward.ask +
-                          Fees.totalFee fx_fees fx_forward.ask
-    let fx_spot_cost := fx_spot.ask +
-                       Fees.totalFee fx_fees fx_spot.ask
-    let forward_discount := (fx_forward_cost - fx_spot_cost) / fx_spot_cost
+                          Fees.totalFee fx_fees fx_forward.ask.val
+                       Fees.totalFee fx_fees fx_spot.ask.val
     ccbs ≥ forward_discount - interest_diff - 0.01 := sorry
 
 -- ============================================================================
@@ -92,11 +83,9 @@ theorem tenor_basis_structure_with_fees
 theorem tenor_basis_butterfly_with_fees
     (swap_2y swap_5y swap_10y : Quote)
     (fees_2y fees_5y fees_10y : Fees) :
-    let wings_proceeds := swap_2y.bid + swap_10y.bid -
-                         (Fees.totalFee fees_2y swap_2y.bid +
-                          Fees.totalFee fees_10y swap_10y.bid)
-    let middle_cost := 2 * swap_5y.ask +
-                      (2 * Fees.totalFee fees_5y swap_5y.ask)
+                         (Fees.totalFee fees_2y swap_2y.bid.val +
+                          Fees.totalFee fees_10y swap_10y.bid.val)
+                      (2 * Fees.totalFee fees_5y swap_5y.ask.val)
     wings_proceeds ≥ middle_cost := sorry
 
 -- ============================================================================
@@ -116,11 +105,8 @@ theorem ois_libor_basis_with_fees
     (libor_swap ois_swap : Quote)
     (libor_fees ois_fees : Fees)
     (credit_premium : Float) :
-    let libor_cost := libor_swap.ask +
-                     Fees.totalFee libor_fees libor_swap.ask
-    let ois_cost := ois_swap.ask +
-                   Fees.totalFee ois_fees ois_swap.ask
-    let basis := libor_cost - ois_cost
+                     Fees.totalFee libor_fees libor_swap.ask.val
+                   Fees.totalFee ois_fees ois_swap.ask.val
     basis ≥ credit_premium - 0.01 := sorry
 
 /-- LIBOR-OIS Spread Upper Bound: Reflects maximum credit risk.
@@ -134,8 +120,6 @@ theorem libor_ois_upper_bound_with_fees
     (libor_fees ois_fees cds_fees : Fees)
     (leverage_factor : Float)
     (hLeverage : leverage_factor > 1) :
-    let basis := libor_swap.ask - ois_swap.ask
-    let cds_spread := cds.ask + Fees.totalFee cds_fees cds.ask
     basis ≤ cds_spread * leverage_factor + 0.01 := sorry
 
 -- ============================================================================
@@ -153,11 +137,8 @@ theorem swap_curve_roll_with_fees
     (near_fees far_fees : Fees)
     (time_remaining : Time)
     (carry_yield : Float) :
-    let roll_proceeds := swap_near.bid -
-                        Fees.totalFee near_fees swap_near.bid
-    let roll_cost := swap_far.ask +
-                    Fees.totalFee far_fees swap_far.ask
-    let net_roll := roll_proceeds - roll_cost
+                        Fees.totalFee near_fees swap_near.bid.val
+                    Fees.totalFee far_fees swap_far.ask.val
     net_roll ≥ carry_yield * (time_remaining.val.max 0) - 0.01 := sorry
 
 /-- Curve Steepener Trade: Bet on steepening via selling short-end, buying long-end.
@@ -169,14 +150,11 @@ theorem swap_curve_roll_with_fees
 theorem curve_steepener_trade_with_fees
     (swap_2y swap_10y : Quote)
     (fees_2y fees_10y : Fees) :
-    let short_proceeds := swap_2y.bid -
-                         Fees.totalFee fees_2y swap_2y.bid
-    let long_cost := swap_10y.ask +
-                    Fees.totalFee fees_10y swap_10y.ask
-    let steepener_value := short_proceeds - long_cost
-    steepener_value = swap_2y.bid - swap_10y.ask -
-                     (Fees.totalFee fees_2y swap_2y.bid +
-                      Fees.totalFee fees_10y swap_10y.ask) := by
+                         Fees.totalFee fees_2y swap_2y.bid.val
+                    Fees.totalFee fees_10y swap_10y.ask.val
+    short_proceeds - long_cost = swap_2y.bid.val - swap_10y.ask.val -
+                     (Fees.totalFee fees_2y swap_2y.bid.val +
+                      Fees.totalFee fees_10y swap_10y.ask.val) := by
   ring
 
 -- ============================================================================
@@ -194,8 +172,6 @@ theorem swap_bond_parity_with_fees
     (swap_fees bond_fees : Fees)
     (oas : Float)
     (hOAS : oas ≥ 0) :
-    let swap_midpoint := (swap.ask + swap.bid) / 2
-    let bond_ytm := bond.bid + Fees.totalFee bond_fees bond.bid / 100
     (swap_midpoint - (bond_ytm + oas)).abs ≤ 0.01 := sorry
 
 /-- Asset Swap: Buy bond, enter swap to convert to floating.
@@ -208,9 +184,6 @@ theorem asset_swap_spread_with_fees
     (bond : Quote) (swap : Quote)
     (bond_fees swap_fees : Fees)
     (libor_rate : Rate) :
-    let bond_cost := bond.ask + Fees.totalFee bond_fees bond.ask
-    let swap_cost := swap.ask + Fees.totalFee swap_fees swap.ask
-    let asw_spread := bond.bid - libor_rate.val - swap_cost
     asw_spread ≥ 0 := sorry
 
 -- ============================================================================
@@ -221,38 +194,38 @@ theorem asset_swap_spread_with_fees
 def checkSwapTreasuryBasis_with_fees
     (swap_spread : Quote) (swap_fees : Fees) :
     Bool :=
-  let swap_cost := swap_spread.ask + Fees.totalFee swap_fees swap_spread.ask
+  let swap_cost := swap_spread.ask.val + Fees.totalFee swap_fees swap_spread.ask.val
   swap_cost ≥ 0
 
 /-- Check swap spread nonnegativity -/
 def checkSwapSpreadNonnegative_with_fees
     (swap_spread : Quote) (swap_fees : Fees) :
     Bool :=
-  let spread_cost := swap_spread.ask + Fees.totalFee swap_fees swap_spread.ask
+  let spread_cost := swap_spread.ask.val + Fees.totalFee swap_fees swap_spread.ask.val
   spread_cost ≥ -0.01
 
 /-- Check cross-currency basis -/
 def checkCrossCurrencyBasis_with_fees
     (basis_spread : Quote) (basis_fees : Fees) :
     Bool :=
-  let basis_cost := basis_spread.ask + Fees.totalFee basis_fees basis_spread.ask
+  let basis_cost := basis_spread.ask.val + Fees.totalFee basis_fees basis_spread.ask.val
   basis_cost ≥ -0.02
 
 /-- Check tenor basis structure -/
 def checkTenorBasisStructure_with_fees
     (basis_short basis_long : Quote) (short_fees long_fees : Fees) :
     Bool :=
-  let short_cost := basis_short.ask + Fees.totalFee short_fees basis_short.ask
-  let long_proceeds := basis_long.bid - Fees.totalFee long_fees basis_long.bid
+  let short_cost := basis_short.ask.val + Fees.totalFee short_fees basis_short.ask.val
+  let long_proceeds := basis_long.bid.val - Fees.totalFee long_fees basis_long.bid.val
   short_cost ≤ long_proceeds + 0.005
 
 /-- Check tenor basis butterfly -/
 def checkTenorBasisButterfly_with_fees
     (basis_2y basis_5y basis_10y : Quote) (fees_2y fees_5y fees_10y : Fees) :
     Bool :=
-  let cost_2y := basis_2y.ask + Fees.totalFee fees_2y basis_2y.ask
-  let mid_5y := (basis_5y.bid + basis_5y.ask) / 2
-  let proceeds_10y := basis_10y.bid - Fees.totalFee fees_10y basis_10y.bid
+  let cost_2y := basis_2y.ask.val + Fees.totalFee fees_2y basis_2y.ask.val
+  let mid_5y := (basis_5y.bid.val + basis_5y.ask.val) / 2
+  let proceeds_10y := basis_10y.bid.val - Fees.totalFee fees_10y basis_10y.bid.val
   let butterfly := cost_2y + proceeds_10y - 2 * mid_5y
   butterfly ≥ -0.005
 
@@ -260,47 +233,47 @@ def checkTenorBasisButterfly_with_fees
 def checkOISLIBORBasis_with_fees
     (ois_rate libor_rate : Quote) (ois_fees libor_fees : Fees) :
     Bool :=
-  let ois_cost := ois_rate.ask + Fees.totalFee ois_fees ois_rate.ask
-  let libor_proceeds := libor_rate.bid - Fees.totalFee libor_fees libor_rate.bid
+  let ois_cost := ois_rate.ask.val + Fees.totalFee ois_fees ois_rate.ask.val
+  let libor_proceeds := libor_rate.bid.val - Fees.totalFee libor_fees libor_rate.bid.val
   ois_cost ≤ libor_proceeds + 0.001
 
 /-- Check LIBOR-OIS upper bound -/
 def checkLIBOROISUpperBound_with_fees
     (libor_rate ois_rate : Quote) (libor_fees ois_fees : Fees) :
     Bool :=
-  let libor_cost := libor_rate.ask + Fees.totalFee libor_fees libor_rate.ask
-  let ois_proceeds := ois_rate.bid - Fees.totalFee ois_fees ois_rate.bid
+  let libor_cost := libor_rate.ask.val + Fees.totalFee libor_fees libor_rate.ask.val
+  let ois_proceeds := ois_rate.bid.val - Fees.totalFee ois_fees ois_rate.bid.val
   libor_cost - ois_proceeds ≥ -0.002
 
 /-- Check swap curve roll -/
 def checkSwapCurveRoll_with_fees
     (forward_swap current_swap : Quote) (forward_fees current_fees : Fees) :
     Bool :=
-  let forward_cost := forward_swap.ask + Fees.totalFee forward_fees forward_swap.ask
-  let current_proceeds := current_swap.bid - Fees.totalFee current_fees current_swap.bid
+  let forward_cost := forward_swap.ask.val + Fees.totalFee forward_fees forward_swap.ask.val
+  let current_proceeds := current_swap.bid.val - Fees.totalFee current_fees current_swap.bid.val
   forward_cost ≥ current_proceeds * 0.99
 
 /-- Check curve steepener trade -/
 def checkCurveSteepenerTrade_with_fees
     (long_end short_end : Quote) (long_fees short_fees : Fees) :
     Bool :=
-  let long_cost := long_end.ask + Fees.totalFee long_fees long_end.ask
-  let short_proceeds := short_end.bid - Fees.totalFee short_fees short_end.bid
+  let long_cost := long_end.ask.val + Fees.totalFee long_fees long_end.ask.val
+  let short_proceeds := short_end.bid.val - Fees.totalFee short_fees short_end.bid.val
   long_cost - short_proceeds ≤ 0.05
 
 /-- Check swap-bond parity -/
 def checkSwapBondParity_with_fees
     (swap_rate bond_yield : Quote) (swap_fees bond_fees : Fees) :
     Bool :=
-  let swap_cost := swap_rate.ask + Fees.totalFee swap_fees swap_rate.ask
-  let bond_proceeds := bond_yield.bid - Fees.totalFee bond_fees bond_yield.bid
+  let swap_cost := swap_rate.ask.val + Fees.totalFee swap_fees swap_rate.ask.val
+  let bond_proceeds := bond_yield.bid.val - Fees.totalFee bond_fees bond_yield.bid.val
   (swap_cost - bond_proceeds).abs ≤ 0.01
 
 /-- Check asset swap spread -/
 def checkAssetSwapSpread_with_fees
     (spread : Quote) (spread_fees : Fees) :
     Bool :=
-  let spread_cost := spread.ask + Fees.totalFee spread_fees spread.ask
+  let spread_cost := spread.ask.val + Fees.totalFee spread_fees spread.ask.val
   spread_cost ≥ -0.02
 
 end Finance.SwapBasis

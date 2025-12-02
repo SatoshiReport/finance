@@ -44,8 +44,8 @@ theorem knockout_upper_bound_with_fees
     (ko_fees vanilla_fees : Fees)
     (spot : Float)
     (hSpot : spot > 0) :
-    let ko_cost := knockout_option.ask + Fees.totalFee ko_fees knockout_option.ask
-    let vanilla_proceeds := vanilla_option.bid - Fees.totalFee vanilla_fees vanilla_option.bid
+    let ko_cost := knockout_option.ask.val + Fees.totalFee ko_fees knockout_option.ask.val
+    let vanilla_proceeds := vanilla_option.bid.val - Fees.totalFee vanilla_fees vanilla_option.bid.val
     ko_cost ≤ vanilla_proceeds := by
   sorry
 
@@ -64,8 +64,8 @@ theorem knockout_with_rebate_bound_with_fees
     (discount_factor : Float)
     (hRebate : rebate > 0)
     (hDF : 0 < discount_factor ∧ discount_factor ≤ 1) :
-    let no_rebate_cost := ko_no_rebate.ask + Fees.totalFee no_rebate_fees ko_no_rebate.ask
-    let with_rebate_proceeds := ko_with_rebate.bid - Fees.totalFee with_rebate_fees ko_with_rebate.bid
+    let no_rebate_cost := ko_no_rebate.ask.val + Fees.totalFee no_rebate_fees ko_no_rebate.ask.val
+    let with_rebate_proceeds := ko_with_rebate.bid.val - Fees.totalFee with_rebate_fees ko_with_rebate.bid.val
     let rebate_value := rebate * discount_factor
     with_rebate_proceeds ≥ no_rebate_cost + rebate_value - 0.01 := by
   sorry
@@ -85,9 +85,9 @@ theorem knockout_with_rebate_bound_with_fees
 theorem knockin_knockout_parity_with_fees
     (knockin_option knockout_option vanilla_option : Quote)
     (ki_fees ko_fees vanilla_fees : Fees) :
-    let ki_cost := knockin_option.ask + Fees.totalFee ki_fees knockin_option.ask
-    let ko_cost := knockout_option.ask + Fees.totalFee ko_fees knockout_option.ask
-    let vanilla_proceeds := vanilla_option.bid - Fees.totalFee vanilla_fees vanilla_option.bid
+    let ki_cost := knockin_option.ask.val + Fees.totalFee ki_fees knockin_option.ask.val
+    let ko_cost := knockout_option.ask.val + Fees.totalFee ko_fees knockout_option.ask.val
+    let vanilla_proceeds := vanilla_option.bid.val - Fees.totalFee vanilla_fees vanilla_option.bid.val
     (ki_cost + ko_cost - vanilla_proceeds).abs ≤ 0.01 := by
   sorry
 
@@ -106,7 +106,7 @@ theorem knockin_lower_bound_with_fees
     (current_spot : Float)
     (hBarrier : barrier > 0)
     (hSpot : current_spot > 0) :
-    let ki_cost := knockin_option.ask + Fees.totalFee ki_fees knockin_option.ask
+    let ki_cost := knockin_option.ask.val + Fees.totalFee ki_fees knockin_option.ask.val
     ki_cost ≥ 0 := by
   sorry
 
@@ -127,8 +127,8 @@ theorem upandout_barrier_monotonicity_with_fees
     (low_barrier_fees high_barrier_fees : Fees)
     (barrier_low barrier_high : Float)
     (hBarrier : barrier_low < barrier_high) :
-    let low_cost := uao_low_barrier.ask + Fees.totalFee low_barrier_fees uao_low_barrier.ask
-    let high_proceeds := uao_high_barrier.bid - Fees.totalFee high_barrier_fees uao_high_barrier.bid
+    let low_cost := uao_low_barrier.ask.val + Fees.totalFee low_barrier_fees uao_low_barrier.ask.val
+    let high_proceeds := uao_high_barrier.bid.val - Fees.totalFee high_barrier_fees uao_high_barrier.bid.val
     low_cost ≤ high_proceeds := by
   sorry
 
@@ -145,8 +145,8 @@ theorem downandIn_barrier_monotonicity_with_fees
     (low_barrier_fees high_barrier_fees : Fees)
     (barrier_low barrier_high : Float)
     (hBarrier : barrier_low < barrier_high) :
-    let low_proceeds := dai_low_barrier.bid - Fees.totalFee low_barrier_fees dai_low_barrier.bid
-    let high_cost := dai_high_barrier.ask + Fees.totalFee high_barrier_fees dai_high_barrier.ask
+    let low_proceeds := dai_low_barrier.bid.val - Fees.totalFee low_barrier_fees dai_low_barrier.bid.val
+    let high_cost := dai_high_barrier.ask.val + Fees.totalFee high_barrier_fees dai_high_barrier.ask.val
     low_proceeds ≥ high_cost := by
   sorry
 
@@ -171,7 +171,7 @@ theorem onetouch_upper_bound_with_fees
     (hBarrier : barrier > 0)
     (hSpot : spot > 0)
     (hDF : 0 < discount_factor ∧ discount_factor ≤ 1) :
-    let ot_cost := onetouch.ask + Fees.totalFee ot_fees onetouch.ask
+    let ot_cost := onetouch.ask.val + Fees.totalFee ot_fees onetouch.ask.val
     ot_cost ≤ discount_factor + 0.01 := by
   sorry
 
@@ -188,8 +188,8 @@ theorem notouch_onetouch_parity_with_fees
     (nt_fees ot_fees : Fees)
     (discount_factor : Float)
     (hDF : 0 < discount_factor ∧ discount_factor ≤ 1) :
-    let nt_cost := notouch.ask + Fees.totalFee nt_fees notouch.ask
-    let ot_proceeds := onetouch.bid - Fees.totalFee ot_fees onetouch.bid
+    let nt_cost := notouch.ask.val + Fees.totalFee nt_fees notouch.ask.val
+    let ot_proceeds := onetouch.bid.val - Fees.totalFee ot_fees onetouch.bid.val
     (nt_cost + ot_proceeds - discount_factor).abs ≤ 0.01 := by
   sorry
 
@@ -202,8 +202,8 @@ def checkKnockoutUpperBound
     (knockout_option vanilla_option : Quote)
     (ko_fees vanilla_fees : Fees) :
     Bool :=
-  let ko_cost := knockout_option.ask + Fees.totalFee ko_fees knockout_option.ask
-  let vanilla_proceeds := vanilla_option.bid - Fees.totalFee vanilla_fees vanilla_option.bid
+  let ko_cost := knockout_option.ask.val + Fees.totalFee ko_fees knockout_option.ask.val
+  let vanilla_proceeds := vanilla_option.bid.val - Fees.totalFee vanilla_fees vanilla_option.bid.val
   ko_cost ≤ vanilla_proceeds
 
 /-- Check knock-out with rebate -/
@@ -212,8 +212,8 @@ def checkKnockoutWithRebate
     (no_rebate_fees with_rebate_fees : Fees)
     (rebate discount_factor : Float) :
     Bool :=
-  let no_rebate_cost := ko_no_rebate.ask + Fees.totalFee no_rebate_fees ko_no_rebate.ask
-  let with_rebate_proceeds := ko_with_rebate.bid - Fees.totalFee with_rebate_fees ko_with_rebate.bid
+  let no_rebate_cost := ko_no_rebate.ask.val + Fees.totalFee no_rebate_fees ko_no_rebate.ask.val
+  let with_rebate_proceeds := ko_with_rebate.bid.val - Fees.totalFee with_rebate_fees ko_with_rebate.bid.val
   let rebate_value := rebate * discount_factor
   with_rebate_proceeds ≥ no_rebate_cost + rebate_value - 0.01
 
@@ -222,9 +222,9 @@ def checkKnockinKnockoutParity
     (knockin_option knockout_option vanilla_option : Quote)
     (ki_fees ko_fees vanilla_fees : Fees) :
     Bool :=
-  let ki_cost := knockin_option.ask + Fees.totalFee ki_fees knockin_option.ask
-  let ko_cost := knockout_option.ask + Fees.totalFee ko_fees knockout_option.ask
-  let vanilla_proceeds := vanilla_option.bid - Fees.totalFee vanilla_fees vanilla_option.bid
+  let ki_cost := knockin_option.ask.val + Fees.totalFee ki_fees knockin_option.ask.val
+  let ko_cost := knockout_option.ask.val + Fees.totalFee ko_fees knockout_option.ask.val
+  let vanilla_proceeds := vanilla_option.bid.val - Fees.totalFee vanilla_fees vanilla_option.bid.val
   (ki_cost + ko_cost - vanilla_proceeds).abs ≤ 0.01
 
 /-- Check knock-in lower bound -/
@@ -232,7 +232,7 @@ def checkKnockinLowerBound
     (knockin_option : Quote)
     (ki_fees : Fees) :
     Bool :=
-  let ki_cost := knockin_option.ask + Fees.totalFee ki_fees knockin_option.ask
+  let ki_cost := knockin_option.ask.val + Fees.totalFee ki_fees knockin_option.ask.val
   ki_cost ≥ 0
 
 /-- Check up-and-out monotonicity -/
@@ -240,8 +240,8 @@ def checkUpandoutMonotonicity
     (uao_low_barrier uao_high_barrier : Quote)
     (low_barrier_fees high_barrier_fees : Fees) :
     Bool :=
-  let low_cost := uao_low_barrier.ask + Fees.totalFee low_barrier_fees uao_low_barrier.ask
-  let high_proceeds := uao_high_barrier.bid - Fees.totalFee high_barrier_fees uao_high_barrier.bid
+  let low_cost := uao_low_barrier.ask.val + Fees.totalFee low_barrier_fees uao_low_barrier.ask.val
+  let high_proceeds := uao_high_barrier.bid.val - Fees.totalFee high_barrier_fees uao_high_barrier.bid.val
   low_cost ≤ high_proceeds
 
 /-- Check down-and-in monotonicity -/
@@ -249,8 +249,8 @@ def checkDownandinMonotonicity
     (dai_low_barrier dai_high_barrier : Quote)
     (low_barrier_fees high_barrier_fees : Fees) :
     Bool :=
-  let low_proceeds := dai_low_barrier.bid - Fees.totalFee low_barrier_fees dai_low_barrier.bid
-  let high_cost := dai_high_barrier.ask + Fees.totalFee high_barrier_fees dai_high_barrier.ask
+  let low_proceeds := dai_low_barrier.bid.val - Fees.totalFee low_barrier_fees dai_low_barrier.bid.val
+  let high_cost := dai_high_barrier.ask.val + Fees.totalFee high_barrier_fees dai_high_barrier.ask.val
   low_proceeds ≥ high_cost
 
 /-- Check one-touch upper bound -/
@@ -259,7 +259,7 @@ def checkOnetouchUpperBound
     (ot_fees : Fees)
     (discount_factor : Float) :
     Bool :=
-  let ot_cost := onetouch.ask + Fees.totalFee ot_fees onetouch.ask
+  let ot_cost := onetouch.ask.val + Fees.totalFee ot_fees onetouch.ask.val
   ot_cost ≤ discount_factor + 0.01
 
 /-- Check no-touch one-touch parity -/
@@ -268,8 +268,8 @@ def checkNotouchOnetouchParity
     (nt_fees ot_fees : Fees)
     (discount_factor : Float) :
     Bool :=
-  let nt_cost := notouch.ask + Fees.totalFee nt_fees notouch.ask
-  let ot_proceeds := onetouch.bid - Fees.totalFee ot_fees onetouch.bid
+  let nt_cost := notouch.ask.val + Fees.totalFee nt_fees notouch.ask.val
+  let ot_proceeds := onetouch.bid.val - Fees.totalFee ot_fees onetouch.bid.val
   (nt_cost + ot_proceeds - discount_factor).abs ≤ 0.01
 
 end Finance.Options.Barriers

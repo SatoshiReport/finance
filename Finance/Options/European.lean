@@ -104,8 +104,8 @@ structure OptionQuotes where
 /-- Put-Call Parity bounds with bid/ask spreads.
 
     When there are bid/ask spreads, we can't execute at a single price.
-    - To sell a call: sell at the bid (receive call.bid)
-    - To buy a call: buy at the ask (pay call.ask)
+    - To sell a call: sell at the bid (receive call.bid.val)
+    - To buy a call: buy at the ask (pay call.ask.val)
     - Similar for puts
 
     The relationship becomes a pair of inequalities:

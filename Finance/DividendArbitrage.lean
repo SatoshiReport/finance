@@ -24,13 +24,9 @@ theorem ex_dividend_price_drop_with_fees
     (dividend_amount : Float)
     (tax_rate : Float)
     (hTax : 0 ≤ tax_rate ∧ tax_rate < 1) :
-    let cum_cost := stock_cum_div.ask +
-                   Fees.totalFee stock_fees stock_cum_div.ask
-    let ex_proceeds := stock_ex_div.bid -
-                      Fees.totalFee stock_fees stock_ex_div.bid
-    let price_drop := cum_cost - ex_proceeds
-    let after_tax_dividend := dividend_amount * (1 - tax_rate)
-    (price_drop - after_tax_dividend).abs ≤ 0.01 * stock_cum_div.ask := sorry
+                   Fees.totalFee stock_fees stock_cum_div.ask.val
+                      Fees.totalFee stock_fees stock_ex_div.bid.val
+    (price_drop - after_tax_dividend).abs ≤ 0.01 * stock_cum_div.ask.val := sorry
 
 /-- Dividend capture: Buy cum-div, receive dividend, sell ex-div.
 
@@ -41,10 +37,8 @@ theorem dividend_capture_arbitrage_with_fees
     (stock_cum stock_ex : Quote)
     (cum_fees ex_fees : Fees)
     (dividend : Float) :
-    let cum_proceeds := stock_cum.bid -
-                       Fees.totalFee cum_fees stock_cum.bid
-    let ex_cost := stock_ex.ask +
-                  Fees.totalFee ex_fees stock_ex.ask
+                       Fees.totalFee cum_fees stock_cum.bid.val
+                  Fees.totalFee ex_fees stock_ex.ask.val
     cum_proceeds ≥ ex_cost + dividend := sorry
 
 /-- Dividend stripping: Synthetic dividend via short stock + long call + short put.
@@ -60,12 +54,12 @@ theorem dividend_stripping_with_fees
     (strike : Float)
     (rate : Rate) (time : Time) :
     -- Synthetic dividend: short stock, long call, short put @ same strike
-    let synthetic_cost := stock.ask - call.bid + put.ask +
-                         (Fees.totalFee stock_fees stock.ask +
-                          Fees.totalFee call_fees call.bid +
-                          Fees.totalFee put_fees put.ask)
+    let synthetic_cost := stock.ask.val - call.bid.val + put.ask.val +
+                         (Fees.totalFee stock_fees stock.ask.val +
+                          Fees.totalFee call_fees call.bid.val +
+                          Fees.totalFee put_fees put.ask.val)
     let df := Float.exp (-rate.val * time.val)
-    let synthetic_dividend := strike * df - stock.ask
+    let synthetic_dividend := strike * df - stock.ask.val
     synthetic_cost ≤ synthetic_dividend + dividend + 0.01 := sorry
 
 -- ============================================================================
@@ -98,8 +92,6 @@ theorem dividend_safety_margin_with_fees
     (borrow_rate : Rate)
     (time : Time)
     (hDividend : dividend > 0) :
-    let borrow_cost := stock.bid * borrow_rate.val * time.val
-    let total_cost := borrow_cost + Fees.totalFee stock_fees stock.bid
     dividend > total_cost := sorry
 
 -- ============================================================================
@@ -118,11 +110,7 @@ theorem equity_swap_dividend_parity_with_fees
     (forward strike : Float)
     (dividend_pv : Float)
     (rate : Rate) (time : Time) :
-    let call_cost := call.ask + Fees.totalFee call_fees call.ask
-    let put_proceeds := put.bid - Fees.totalFee put_fees put.bid
-    let df := Float.exp (-rate.val * time.val)
-    let swap_payoff := (forward - strike) * df + dividend_pv
-    (call_cost - put_proceeds - swap_payoff).abs ≤ stock.ask * 0.01 := sorry
+    (call_cost - put_proceeds - swap_payoff).abs ≤ stock.ask.val * 0.01 := sorry
 
 /-- Forward dividend adjustment: Forward prices include dividend yield.
 
@@ -136,10 +124,6 @@ theorem forward_dividend_adjustment_with_fees
     (spot_fees forward_fees : Fees)
     (rate dividend_yield : Rate)
     (time : Time) :
-    let spot_cost := spot.ask + Fees.totalFee spot_fees spot.ask
-    let forward_proceeds := forward.bid - Fees.totalFee forward_fees forward.bid
-    let carry := rate.val - dividend_yield.val
-    let theoretical_forward := spot_cost * Float.exp (carry * time.val)
     (forward_proceeds - theoretical_forward).abs ≤ spot_cost * 0.001 := sorry
 
 -- ============================================================================
@@ -157,9 +141,7 @@ theorem american_call_early_exercise_dividend_with_fees
     (call_fees stock_fees : Fees)
     (strike : Float)
     (dividend : Float)
-    (hStock : stock.bid > strike) :
-    let call_cost := call.ask + Fees.totalFee call_fees call.ask
-    let intrinsic := stock.bid - strike
+    (hStock : stock.bid.val > strike) :
     call_cost ≥ intrinsic + dividend * 0.8 := sorry
 
 /-- American put not exercised early on dividends (unlike calls).
@@ -172,10 +154,8 @@ theorem american_call_early_exercise_dividend_with_fees
 theorem american_put_dividend_independence_with_fees
     (american_put european_put : Quote)
     (american_fees european_fees : Fees) :
-    let american_cost := american_put.ask +
-                        Fees.totalFee american_fees american_put.ask
-    let european_cost := european_put.ask +
-                        Fees.totalFee european_fees european_put.ask
+                        Fees.totalFee american_fees american_put.ask.val
+                        Fees.totalFee european_fees european_put.ask.val
     american_cost ≥ european_cost := sorry
 
 -- ============================================================================
@@ -194,12 +174,6 @@ theorem dividend_adjusted_putcall_parity_with_fees
     (strike : Float)
     (rate dividend_yield : Rate)
     (time : Time) :
-    let call_cost := call.ask + Fees.totalFee call_fees call.ask
-    let put_proceeds := put.bid - Fees.totalFee put_fees put.bid
-    let stock_cost := stock.ask + Fees.totalFee stock_fees stock.ask
-    let df_interest := Float.exp (-rate.val * time.val)
-    let df_dividend := Float.exp (-dividend_yield.val * time.val)
-    let parity_bound := (stock_cost * df_dividend - strike * df_interest).abs + 0.01
     (call_cost - put_proceeds).abs ≤ parity_bound := sorry
 
 /-- Protective put dividend adjustment: Put protection covers ex-dates.
@@ -212,10 +186,8 @@ theorem protective_put_dividend_cost_with_fees
     (stock put : Quote)
     (stock_fees put_fees : Fees)
     (dividend_pv : Float) :
-    let protective_put := put.ask + stock.ask +
-                         (Fees.totalFee put_fees put.ask +
-                          Fees.totalFee stock_fees stock.ask)
-    let net_cost := protective_put - dividend_pv
+                         (Fees.totalFee put_fees put.ask.val +
+                          Fees.totalFee stock_fees stock.ask.val)
     net_cost > 0 := by
   norm_num
 
@@ -229,13 +201,13 @@ def checkExDividendPriceDrop
     (stock_fees : Fees)
     (dividend_amount tax_rate : Float) :
     Bool :=
-  let cum_cost := stock_cum_div.ask +
-                 Fees.totalFee stock_fees stock_cum_div.ask
-  let ex_proceeds := stock_ex_div.bid -
-                    Fees.totalFee stock_fees stock_ex_div.bid
+  let cum_cost := stock_cum_div.ask.val +
+                 Fees.totalFee stock_fees stock_cum_div.ask.val
+  let ex_proceeds := stock_ex_div.bid.val -
+                    Fees.totalFee stock_fees stock_ex_div.bid.val
   let price_drop := cum_cost - ex_proceeds
   let after_tax_dividend := dividend_amount * (1 - tax_rate)
-  return (price_drop - after_tax_dividend).abs ≤ 0.01 * stock_cum_div.ask
+  return (price_drop - after_tax_dividend).abs ≤ 0.01 * stock_cum_div.ask.val
 
 /-- Check dividend capture arbitrage -/
 def checkDividendCapture
@@ -243,10 +215,10 @@ def checkDividendCapture
     (cum_fees ex_fees : Fees)
     (dividend : Float) :
     Bool :=
-  let cum_proceeds := stock_cum.bid -
-                     Fees.totalFee cum_fees stock_cum.bid
-  let ex_cost := stock_ex.ask +
-                Fees.totalFee ex_fees stock_ex.ask
+  let cum_proceeds := stock_cum.bid.val -
+                     Fees.totalFee cum_fees stock_cum.bid.val
+  let ex_cost := stock_ex.ask.val +
+                Fees.totalFee ex_fees stock_ex.ask.val
   return cum_proceeds ≥ ex_cost + dividend
 
 /-- Check dividend stripping constraint -/
@@ -258,12 +230,12 @@ def checkDividendStripping
     (rate : Rate)
     (time : Time) :
     Bool :=
-  let synthetic_cost := stock.ask - call.bid + put.ask +
-                       (Fees.totalFee stock_fees stock.ask +
-                        Fees.totalFee call_fees call.bid +
-                        Fees.totalFee put_fees put.ask)
+  let synthetic_cost := stock.ask.val - call.bid.val + put.ask.val +
+                       (Fees.totalFee stock_fees stock.ask.val +
+                        Fees.totalFee call_fees call.bid.val +
+                        Fees.totalFee put_fees put.ask.val)
   let df := Float.exp (-rate.val * time.val)
-  let synthetic_dividend := strike * df - stock.ask
+  let synthetic_dividend := strike * df - stock.ask.val
   return synthetic_cost ≤ synthetic_dividend + dividend + 0.01
 
 /-- Check dividend yield curve structure -/
@@ -278,8 +250,8 @@ def checkDividendSafetyMargin
     (stock_fees : Fees)
     (dividend borrow_rate_val time_val : Float) :
     Bool :=
-  let borrow_cost := stock.bid * borrow_rate_val * time_val
-  let total_cost := borrow_cost + Fees.totalFee stock_fees stock.bid
+  let borrow_cost := stock.bid.val * borrow_rate_val * time_val
+  let total_cost := borrow_cost + Fees.totalFee stock_fees stock.bid.val
   dividend > total_cost
 
 /-- Check equity swap dividend parity -/
@@ -291,11 +263,11 @@ def checkEquitySwapDividendParity
     (rate : Rate)
     (time : Time) :
     Bool :=
-  let call_cost := call.ask + Fees.totalFee call_fees call.ask
-  let put_proceeds := put.bid - Fees.totalFee put_fees put.bid
+  let call_cost := call.ask.val + Fees.totalFee call_fees call.ask.val
+  let put_proceeds := put.bid.val - Fees.totalFee put_fees put.bid.val
   let df := Float.exp (-rate.val * time.val)
   let swap_payoff := (forward - strike) * df + dividend_pv
-  (call_cost - put_proceeds - swap_payoff).abs ≤ stock.ask * 0.01
+  (call_cost - put_proceeds - swap_payoff).abs ≤ stock.ask.val * 0.01
 
 /-- Check forward dividend adjustment -/
 def checkForwardDividendAdjustment
@@ -303,8 +275,8 @@ def checkForwardDividendAdjustment
     (spot_fees forward_fees : Fees)
     (rate_val dividend_yield_val time_val : Float) :
     Bool :=
-  let spot_cost := spot.ask + Fees.totalFee spot_fees spot.ask
-  let forward_proceeds := forward.bid - Fees.totalFee forward_fees forward.bid
+  let spot_cost := spot.ask.val + Fees.totalFee spot_fees spot.ask.val
+  let forward_proceeds := forward.bid.val - Fees.totalFee forward_fees forward.bid.val
   let carry := rate_val - dividend_yield_val
   let theoretical_forward := spot_cost * Float.exp (carry * time_val)
   (forward_proceeds - theoretical_forward).abs ≤ spot_cost * 0.001
@@ -315,8 +287,8 @@ def checkAmericanCallEarlyExerciseDividend
     (call_fees stock_fees : Fees)
     (strike dividend : Float) :
     Bool :=
-  let call_cost := call.ask + Fees.totalFee call_fees call.ask
-  let intrinsic := stock.bid - strike
+  let call_cost := call.ask.val + Fees.totalFee call_fees call.ask.val
+  let intrinsic := stock.bid.val - strike
   call_cost ≥ intrinsic + dividend * 0.8
 
 /-- Check American put dividend independence -/
@@ -324,10 +296,10 @@ def checkAmericanPutDividendIndependence
     (american_put european_put : Quote)
     (american_fees european_fees : Fees) :
     Bool :=
-  let american_cost := american_put.ask +
-                      Fees.totalFee american_fees american_put.ask
-  let european_cost := european_put.ask +
-                      Fees.totalFee european_fees european_put.ask
+  let american_cost := american_put.ask.val +
+                      Fees.totalFee american_fees american_put.ask.val
+  let european_cost := european_put.ask.val +
+                      Fees.totalFee european_fees european_put.ask.val
   return american_cost ≥ european_cost
 
 /-- Check dividend-adjusted put-call parity -/
@@ -338,9 +310,9 @@ def checkDividendAdjustedPutCallParity
     (rate dividend_yield : Rate)
     (time : Time) :
     Bool :=
-  let call_cost := call.ask + Fees.totalFee call_fees call.ask
-  let put_proceeds := put.bid - Fees.totalFee put_fees put.bid
-  let stock_cost := stock.ask + Fees.totalFee stock_fees stock.ask
+  let call_cost := call.ask.val + Fees.totalFee call_fees call.ask.val
+  let put_proceeds := put.bid.val - Fees.totalFee put_fees put.bid.val
+  let stock_cost := stock.ask.val + Fees.totalFee stock_fees stock.ask.val
   let df_interest := Float.exp (-rate.val * time.val)
   let df_dividend := Float.exp (-dividend_yield.val * time.val)
   let parity_bound := (stock_cost * df_dividend - strike * df_interest).abs + 0.01
