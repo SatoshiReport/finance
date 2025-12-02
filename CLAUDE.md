@@ -207,3 +207,150 @@ Every theorem module has a dual:
 | `*Detection.lean` (paired) | Computational checkers evaluating constraints with real data |
 
 This separation ensures theorems remain pure mathematical proofs while detection functions remain executable and practical.
+
+## Common Lean 4 Pitfalls and Best Practices (Learned from Experience)
+
+### Theorem Goal Structure: AVOID Let-Bindings in Goal Types
+
+❌ **WRONG** - Causes type class synthesis failures:
+```lean
+theorem forward_swap_parity (forward_swap spot_swap : Quote) ... :
+    let forward_cost := forward_swap.ask + ...  -- ❌ Let-binding in goal type
+    let spot_proceeds := spot_swap.bid - ...
+    let net := forward_cost - spot_proceeds
+    net ≤ threshold := by ...
+```
+
+✅ **CORRECT** - Move let-bindings into proof body:
+```lean
+theorem forward_swap_parity (forward_swap spot_swap : Quote) ... :
+    (forward_swap.ask + ... - (spot_swap.bid - ...)) ≤ threshold := by
+  sorry  -- or complete proof here
+```
+
+**Why?** Lean 4's type checker struggles with let-bindings in goal positions. The type of a let-bound variable becomes part of the goal type, creating ambiguous type class instances.
+
+**Better approach**: Use computational `def` functions for complex intermediate calculations instead of theorem let-bindings.
+
+### PosReal/Float Type Class Issues
+
+**Problem**: `PosReal` (for quote prices) and `Float` (for calculations) don't freely interact. Adding a `PosReal` to a `Float` fails.
+
+```lean
+let call_cost := call.ask + Fees.totalFee ...  -- ❌ Error: HAdd PosReal Float ?m.4
+```
+
+**Solution 1 - Use explicit coercion (preferred)**:
+```lean
+instance : Coe PosReal Float := ⟨PosReal.toFloat⟩
+let call_cost := (call.ask : Float) + Fees.totalFee ...  -- ✅ Works via coercion
+```
+
+**Solution 2 - Use .val accessor explicitly**:
+```lean
+let call_cost := call.ask.val + Fees.totalFee call_fees call.ask.val  -- ✅ Works
+```
+
+**When designing theorems**: If you need arithmetic with quote prices, either:
+1. Design the theorem using only `Float` parameters and convert quotes outside
+2. Use explicit type coercions in the theorem statement
+3. Avoid complex arithmetic with Quote types directly
+
+### Time Type Requires .val for Comparisons
+
+**Problem**: `Time` is a custom type with `val : Float` and `nonneg : val ≥ 0` fields.
+
+```lean
+theorem foo (duration : Time) (hDuration : duration > 0) := ...  -- ❌ Error: LT Time not found
+```
+
+**Solution**: Always use `.val` for comparisons:
+```lean
+theorem foo (duration : Time) (hDuration : duration.val > 0) := ...  -- ✅ Works
+```
+
+**Applies to**: Any parameter of type `Time`, `Rate`, or other structured types that wrap `Float`.
+
+### Computational Checker Function Patterns
+
+**DO NOT use tactic mode for checker functions**:
+
+```lean
+def checkPutCallParity ... : Bool := by  -- ❌ WRONG
+  return result
+```
+
+**ALWAYS use term mode**:
+
+```lean
+def checkPutCallParity ... : Bool :=     -- ✅ CORRECT
+  result
+```
+
+This matches Lean 4's expectations: checkers are executable functions, not tactic proofs.
+
+### Float Operations That Don't Exist in Lean 4
+
+Do NOT use these (they're not in Lean 4.26):
+- ❌ `Float.max`
+- ❌ `Float.min`
+- ❌ `Float.log` (use workaround functions)
+- ❌ Direct arithmetic without type coercion
+
+**Workarounds**:
+```lean
+-- Instead of Float.max a b, use:
+if a < b then b else a
+
+-- Instead of Float.min a b, use:
+if a < b then a else b
+```
+
+### Syntax Errors to Watch For
+
+| Error | Fix |
+|-------|-----|
+| `nsorry` undefined | Replace with `sorry` (Lean 4 doesn't have `nsorry`) |
+| `isArb.inl` invalid | Use `isArb := Or.inl` instead |
+| `by ... return` in function | Convert to term mode: ` := expression` |
+| `push_neg` makes no progress | Issue is earlier in the proof structure; review theorem goal type |
+
+### Fees Calculation Pattern
+
+Always follow this exact pattern for fees:
+
+```lean
+-- For cost (paying the ask price):
+let cost := quote.ask + Fees.totalFee fees quote.ask
+
+-- For proceeds (receiving the bid price):
+let proceeds := quote.bid - Fees.totalFee fees quote.bid
+```
+
+Never use `quote.ask - Fees.totalFee` or other variations - this changes the semantics.
+
+### When to Use `sorry` Appropriately
+
+It's fine to use `sorry` for:
+- Float arithmetic proofs that rely on IEEE754 properties (currently not formalized)
+- Complex non-linear arithmetic that would require `nlinarith` or similar
+- Theorems you're confident are true but haven't proven yet
+
+But ALWAYS:
+1. Add a comment explaining why you used `sorry`
+2. Ensure the theorem statement is correct
+3. Verify `lake build` passes (which validates syntax)
+4. Create a matching computational checker function
+
+### Review Checklist for New Modules
+
+When creating a new Finance module with theorems:
+
+- [ ] All theorem goal types are direct inequality constraints (no let-bindings in goal)
+- [ ] All `Time`/`Rate` parameters use `.val` in comparisons
+- [ ] All `PosReal` (quote) field arithmetic uses explicit coercion or `.val`
+- [ ] Every theorem has a matching computational `def check*` function in term mode
+- [ ] No `Float.max`, `Float.min`, or undefined functions used
+- [ ] `lake build` passes completely before considering the module done
+- [ ] Fee calculations follow the pattern above (cost with +, proceeds with -)
+- [ ] Complex intermediate calculations are in `def` functions, not theorem let-bindings
