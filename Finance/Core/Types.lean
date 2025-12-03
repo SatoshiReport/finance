@@ -38,12 +38,12 @@ def smul (c : ℝ) (r : PosReal) (hc : c > 0) : PosReal :=
   ⟨c * r.val, by sorry⟩
 
 /-- Maximum of two positive reals. -/
-def max (a b : PosReal) : PosReal :=
+noncomputable def max (a b : PosReal) : PosReal :=
   let m := if a.val > b.val then a.val else b.val
   ⟨m, by sorry⟩
 
 /-- Minimum of two positive reals. -/
-def min (a b : PosReal) : PosReal :=
+noncomputable def min (a b : PosReal) : PosReal :=
   let m := if a.val < b.val then a.val else b.val
   ⟨m, by sorry⟩
 
@@ -70,10 +70,10 @@ def mk' {b a : ℝ} (hb : b > 0) (ha : a > 0) (hva : b ≤ a) : Quote :=
 def spread (q : Quote) : ℝ := q.ask.val - q.bid.val
 
 /-- The midpoint of the quote. -/
-def mid (q : Quote) : ℝ := (q.bid.val + q.ask.val) / 2
+noncomputable def mid (q : Quote) : ℝ := (q.bid.val + q.ask.val) / 2
 
 /-- Tightness ratio: spread / midpoint, measures relative spread. -/
-def tightness (q : Quote) : ℝ :=
+noncomputable def tightness (q : Quote) : ℝ :=
   spread q / mid q
 
 /-- Extract bid price as real (preferred over direct .bid.val access). -/
@@ -173,11 +173,11 @@ def typical : Rate := ⟨0.05⟩
 def negative : Rate := ⟨-0.01⟩
 
 /-- Discount factor: e^(-r*t) -/
-def discountFactor (r : Rate) (t : Time) : ℝ :=
+noncomputable def discountFactor (r : Rate) (t : Time) : ℝ :=
   Real.exp (-(r.val * t.val))
 
 /-- Accumulation factor: e^(r*t) -/
-def accumulationFactor (r : Rate) (t : Time) : ℝ :=
+noncomputable def accumulationFactor (r : Rate) (t : Time) : ℝ :=
   Real.exp (r.val * t.val)
 
 /-- Extract rate value as real (preferred over direct .val access). -/

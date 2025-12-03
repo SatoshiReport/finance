@@ -93,14 +93,14 @@ structure CashFlow where
 /-- Compute the present value of a cash flow using discount factor.
     pv = amount * discount_factor
 -/
-def presentValue (cf : CashFlow) (r : Rate) : ℝ :=
+noncomputable def presentValue (cf : CashFlow) (r : Rate) : ℝ :=
   cf.amount * Rate.discountFactor r cf.time
 
 /-- A trading strategy is a sequence of cash flows. -/
 def TradingStrategy := List CashFlow
 
 /-- Sum of all present values in a strategy. -/
-def netPresentValue (strategy : TradingStrategy) (r : Rate) : ℝ :=
+noncomputable def netPresentValue (strategy : TradingStrategy) (r : Rate) : ℝ :=
   (strategy.map (fun cf => presentValue cf r)).sum
 
 /-- An arbitrage opportunity in a strategy: NPV > 0 at inception. -/
