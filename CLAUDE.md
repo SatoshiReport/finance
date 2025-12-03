@@ -31,6 +31,39 @@ lake fmt
 lake env lean --run .lake/packages/mathlib/scripts/lint-style.lean
 ```
 
+## Process Cleanup (Critical for Development)
+
+⚠️ **Lake and Lean processes can become CPU-hungry and hang in the background**. Always clean them up after runs:
+
+```bash
+# Kill all stray lake and lean processes immediately after builds complete
+pkill -9 lake lean
+
+# Use this especially after:
+# - lake build (if it takes > 30 seconds after output)
+# - lake test (always, even if tests pass)
+# - Interrupted builds (Ctrl+C)
+# - Multiple consecutive builds
+
+# Check for stray processes:
+ps aux | grep -E '(lake|lean)' | grep -v grep
+```
+
+**When to run cleanup:**
+- ✅ **Always** after `lake test` completes (even if successful)
+- ✅ **Always** after interrupted builds (Ctrl+C)
+- ✅ **Always** between major build runs (Phases 1-5 conversions, full rebuilds)
+- ✅ After running background builds with `run_in_background`
+- ✅ Before long operations (proofs, multifile edits)
+
+**Why this matters:**
+- Lean and Lake spawn child processes that don't always exit cleanly
+- Multiple stray processes can consume 80-90% CPU indefinitely
+- This blocks the terminal and slows down subsequent builds
+- `pkill -9` forcefully terminates (use -9 flag, not just -15)
+
+**DO NOT use:** `pkill -9 -f lake` (too broad, may kill other processes). Use `pkill -9 lake lean` instead (targets specific names).
+
 ## CI Pipeline
 
 The repository includes `ci.sh` which:
@@ -42,6 +75,8 @@ The repository includes `ci.sh` which:
 6. Commits and pushes changes
 
 **Important**: Do not modify CI pipeline code without explicit instructions.
+
+**After CI runs:** Always run `pkill -9 lake lean` to clean up background processes before next iteration.
 
 ## Project Structure
 
