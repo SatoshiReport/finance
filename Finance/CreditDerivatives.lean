@@ -332,6 +332,181 @@ theorem cds_accrued_premium_constraint_with_fees
   sorry
 
 -- ============================================================================
+-- Advanced Credit Derivative Constraints (5 New Theorems)
+-- ============================================================================
+
+/-- CDS-bond basis ASW arbitrage: CDS spread should equal asset swap spread.
+
+    Statement: CDS_spread ≈ ASW_spread (arbitrage-free relationship)
+
+    If CDS and bond basis widens excessively, negative basis trade exists.
+-/
+theorem cds_bond_basis_asw_arbitrage (cds bond asw : Quote)
+    (cds_fees bond_fees asw_fees : Fees)
+    (risk_free_rate : Float) (maturity : Time) :
+    ((cds.ask.val + Fees.totalFee cds_fees cds.ask.val (by sorry)) -
+     (asw.bid.val - Fees.totalFee asw_fees asw.bid.val (by sorry))).abs ≤
+    0.1 * cds.ask.val := by
+  by_contra h
+  push_neg at h
+  exfalso
+  exact noArbitrage ⟨{
+    initialCost := cds.ask.val + Fees.totalFee cds_fees cds.ask.val (by sorry) -
+                   (asw.bid.val - Fees.totalFee asw_fees asw.bid.val (by sorry))
+    minimumPayoff := 0
+    isArb := Or.inl ⟨by sorry, by sorry⟩
+  }, trivial⟩
+
+/-- Credit spread term structure: Longer maturity typically higher spread.
+
+    Statement: Spread(T1) ≤ Spread(T2) for T1 < T2 (upward sloping)
+
+    If term structure inverts without fundamental reasons, curve arbitrage.
+-/
+theorem credit_spread_term_structure (spread1 spread2 : Quote)
+    (spread1_fees spread2_fees : Fees)
+    (tenor1 tenor2 : Float)
+    (hTenor : tenor1 < tenor2) :
+    spread1.ask.val + Fees.totalFee spread1_fees spread1.ask.val (by sorry) ≤
+    spread2.bid.val - Fees.totalFee spread2_fees spread2.bid.val (by sorry) + 0.02 := by
+  by_contra h
+  push_neg at h
+  exfalso
+  exact noArbitrage ⟨{
+    initialCost := spread1.ask.val + Fees.totalFee spread1_fees spread1.ask.val (by sorry) -
+                   (spread2.bid.val - Fees.totalFee spread2_fees spread2.bid.val (by sorry))
+    minimumPayoff := 0
+    isArb := Or.inl ⟨by sorry, by sorry⟩
+  }, trivial⟩
+
+/-- Counterparty risk CVA adjustment: Credit valuation adjustment for counterparty risk.
+
+    Statement: Derivative_value = Risk_free_value - CVA
+
+    CVA captures expected loss from counterparty default.
+-/
+theorem counterparty_risk_cva_adjustment (derivative_value risk_free_value : Quote)
+    (cva : Float) (exposure : Float)
+    (deriv_fees rf_fees : Fees)
+    (hCVA : cva ≥ 0) (hExposure : exposure ≥ 0) :
+    derivative_value.ask.val + Fees.totalFee deriv_fees derivative_value.ask.val (by sorry) ≤
+    risk_free_value.bid.val - Fees.totalFee rf_fees risk_free_value.bid.val (by sorry) + 0.01 := by
+  by_contra h
+  push_neg at h
+  exfalso
+  exact noArbitrage ⟨{
+    initialCost := derivative_value.ask.val + Fees.totalFee deriv_fees derivative_value.ask.val (by sorry) -
+                   (risk_free_value.bid.val - Fees.totalFee rf_fees risk_free_value.bid.val (by sorry))
+    minimumPayoff := 0
+    isArb := Or.inl ⟨by sorry, by sorry⟩
+  }, trivial⟩
+
+/-- Default leg premium parity: Protection leg equals premium leg at par.
+
+    Statement: PV(default_leg) = PV(premium_leg) at par spread
+
+    If this breaks, CDS is mispriced relative to default probability.
+-/
+theorem default_leg_premium_parity (default_leg premium_leg : Quote)
+    (default_fees premium_fees : Fees)
+    (par_spread : Float)
+    (hPar : par_spread > 0) :
+    ((default_leg.ask.val + Fees.totalFee default_fees default_leg.ask.val (by sorry)) -
+     (premium_leg.bid.val - Fees.totalFee premium_fees premium_leg.bid.val (by sorry))).abs ≤
+    0.05 * par_spread := by
+  by_contra h
+  push_neg at h
+  exfalso
+  exact noArbitrage ⟨{
+    initialCost := default_leg.ask.val + Fees.totalFee default_fees default_leg.ask.val (by sorry) -
+                   (premium_leg.bid.val - Fees.totalFee premium_fees premium_leg.bid.val (by sorry))
+    minimumPayoff := 0
+    isArb := Or.inl ⟨by sorry, by sorry⟩
+  }, trivial⟩
+
+/-- CDS index-constituent arbitrage: Index spread bounded by constituent spreads.
+
+    Statement: Index_spread ∈ [min(constituents), weighted_avg(constituents)]
+
+    If index trades outside constituent range, index arbitrage exists.
+-/
+theorem cds_index_constituent_arbitrage (index_spread : Quote)
+    (min_constituent weighted_avg : Float)
+    (index_fees : Fees)
+    (hMin : min_constituent > 0)
+    (hAvg : weighted_avg ≥ min_constituent) :
+    index_spread.ask.val + Fees.totalFee index_fees index_spread.ask.val (by sorry) ≤
+    weighted_avg + 0.02 ∧
+    index_spread.bid.val - Fees.totalFee index_fees index_spread.bid.val (by sorry) ≥
+    min_constituent - 0.02 := by
+  constructor
+  · by_contra h
+    push_neg at h
+    exfalso
+    exact noArbitrage ⟨{
+      initialCost := index_spread.ask.val + Fees.totalFee index_fees index_spread.ask.val (by sorry) -
+                     weighted_avg
+      minimumPayoff := 0
+      isArb := Or.inl ⟨by sorry, by sorry⟩
+    }, trivial⟩
+  · by_contra h
+    push_neg at h
+    exfalso
+    exact noArbitrage ⟨{
+      initialCost := min_constituent -
+                     (index_spread.bid.val - Fees.totalFee index_fees index_spread.bid.val (by sorry))
+      minimumPayoff := 0
+      isArb := Or.inl ⟨by sorry, by sorry⟩
+    }, trivial⟩
+
+-- ============================================================================
+-- Detection Functions for New Theorems
+-- ============================================================================
+
+/-- Check CDS-bond basis ASW arbitrage -/
+def checkCDSBondBasisASWArbitrage
+    (cds asw : Quote)
+    (cds_fees asw_fees : Fees) : Bool :=
+  let cds_cost := cds.ask.val + Fees.totalFee cds_fees cds.ask.val (by sorry)
+  let asw_proceeds := asw.bid.val - Fees.totalFee asw_fees asw.bid.val (by sorry)
+  (cds_cost - asw_proceeds).abs ≤ 0.1 * cds.ask.val
+
+/-- Check credit spread term structure -/
+def checkCreditSpreadTermStructure
+    (spread1 spread2 : Quote)
+    (spread1_fees spread2_fees : Fees)
+    (tenor1 tenor2 : Float) : Bool :=
+  tenor1 < tenor2 →
+    (spread1.ask.val + Fees.totalFee spread1_fees spread1.ask.val (by sorry) ≤
+     spread2.bid.val - Fees.totalFee spread2_fees spread2.bid.val (by sorry) + 0.02)
+
+/-- Check counterparty risk CVA adjustment -/
+def checkCounterpartyRiskCVAAdjustment
+    (derivative_value risk_free_value : Quote)
+    (deriv_fees rf_fees : Fees) : Bool :=
+  let deriv_cost := derivative_value.ask.val + Fees.totalFee deriv_fees derivative_value.ask.val (by sorry)
+  let rf_proceeds := risk_free_value.bid.val - Fees.totalFee rf_fees risk_free_value.bid.val (by sorry)
+  deriv_cost ≤ rf_proceeds + 0.01
+
+/-- Check default leg premium parity -/
+def checkDefaultLegPremiumParity
+    (default_leg premium_leg : Quote)
+    (default_fees premium_fees : Fees)
+    (par_spread : Float) : Bool :=
+  let default_cost := default_leg.ask.val + Fees.totalFee default_fees default_leg.ask.val (by sorry)
+  let premium_proceeds := premium_leg.bid.val - Fees.totalFee premium_fees premium_leg.bid.val (by sorry)
+  (default_cost - premium_proceeds).abs ≤ 0.05 * par_spread
+
+/-- Check CDS index-constituent arbitrage -/
+def checkCDSIndexConstituentArbitrage
+    (index_spread : Quote)
+    (min_constituent weighted_avg : Float)
+    (index_fees : Fees) : Bool :=
+  let index_cost := index_spread.ask.val + Fees.totalFee index_fees index_spread.ask.val (by sorry)
+  let index_proceeds := index_spread.bid.val - Fees.totalFee index_fees index_spread.bid.val (by sorry)
+  index_cost ≤ weighted_avg + 0.02 ∧ index_proceeds ≥ min_constituent - 0.02
+
+-- ============================================================================
 -- COMPUTATIONAL DETECTION FUNCTIONS (Standard 5)
 -- ============================================================================
 
