@@ -513,4 +513,51 @@ def checkCrossRateParity
 def checkForwardPositivity (forward : ℝ) : Bool :=
   forward > 0
 
+/-- Check currency swap parity: Swap cost vs spot+rate replication. -/
+def checkCurrencySwapParity
+    (swap_rate : ℝ)
+    (spot_mid : ℝ)
+    (funding_rate investment_rate : ℝ)
+    (tolerance : ℝ) :
+    Bool :=
+  if 1 + funding_rate ≠ 0 then
+    let fair := spot_mid * ((1 + investment_rate) / (1 + funding_rate))
+    (swap_rate - fair).abs ≤ tolerance
+  else
+    true
+
+/-- Check basis swap constraint: Spread between SOFR USD and SONIA GBP. -/
+def checkBasisSwapConstraint
+    (sofr_usd sonia_gbp : ℝ)
+    (max_basis : ℝ) :
+    Bool :=
+  (sofr_usd - sonia_gbp).abs ≤ max_basis
+
+/-- Check swap rate consistency: All-in swap rate ≈ (spot + forward)/2. -/
+def checkSwapRateConsistency
+    (swap_rate spot_rate forward_rate : ℝ)
+    (tolerance : ℝ) :
+    Bool :=
+  let replication := (spot_rate + forward_rate) / 2
+  (swap_rate - replication).abs ≤ tolerance
+
+/-- Check quanto forward bounds: Equity forward ≈ spot × FX forward. -/
+def checkQuantoForwardBounds
+    (equity_forward equity_spot fx_forward : ℝ)
+    (tolerance : ℝ) :
+    Bool :=
+  if equity_spot > 0 then
+    let implied_equity_fwd := equity_spot * fx_forward
+    (equity_forward - implied_equity_fwd).abs ≤ tolerance * equity_spot
+  else
+    true
+
+/-- Check multicurrency bond parity: USD bond ≈ EUR bond × FX forward. -/
+def checkMulticurrencyBondParity
+    (usd_bond_price eur_bond_price fx_forward : ℝ)
+    (tolerance : ℝ) :
+    Bool :=
+  let hedged_price := eur_bond_price * fx_forward
+  (usd_bond_price - hedged_price).abs ≤ tolerance * fx_forward
+
 end Finance.Forwards
