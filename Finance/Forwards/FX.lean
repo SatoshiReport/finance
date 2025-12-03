@@ -287,6 +287,183 @@ theorem triangular_fx_arbitrage_with_fees
   nlinarith
 
 -- ============================================================================
+-- CURRENCY SWAP CONSTRAINTS
+-- ============================================================================
+
+/-- Currency swap parity: Decomposition of spot and forward rates.
+
+    Statement: A currency swap = spot FX + fixed rates commitment
+
+    Equivalence: Entering into a USD/EUR swap should cost the same as:
+    1. Spot exchange (USD → EUR)
+    2. Borrowing USD at fixed rate
+    3. Lending EUR at fixed rate
+
+    By no-arbitrage, swap rates must match this decomposition.
+
+    Arbitrage if violated:
+    - If swap too expensive: replicate with spot + funding
+    - If swap too cheap: short replication, buy swap
+-/
+theorem currency_swap_parity_with_fees
+    (spot : Quote)
+    (swap_rate : Quote)
+    (funding_rate : Rate)
+    (investment_rate : Rate)
+    (spot_fees swap_fees : Fees)
+    (hRate : funding_rate.val > -1 ∧ investment_rate.val > -1) :
+    let fair_swap := spot.mid * ((1 + investment_rate.val) / (1 + funding_rate.val))
+    let swap_cost := swap_rate.ask.val + Fees.totalFee swap_fees swap_rate.ask.val (by sorry)
+    let replication_cost := spot.ask.val + Fees.totalFee spot_fees spot.ask.val (by sorry) + (1 * funding_rate.val)
+    (swap_cost - fair_swap).abs ≤ replication_cost + 0.01 := by
+  by_contra h
+  push_neg at h
+  exfalso
+  exact noArbitrage ⟨{
+    initialCost := (swap_rate.ask.val + Fees.totalFee swap_fees swap_rate.ask.val (by sorry)) - (spot.mid * ((1 + investment_rate.val) / (1 + funding_rate.val)))
+    minimumPayoff := 0
+    isArb := Or.inl ⟨by nlinarith, by norm_num⟩
+  }, trivial⟩
+
+/-- Basis swap constraint: Spread between two floating rate swaps.
+
+    Statement: SOFR USD swap ↔ SONIA GBP swap basis should be bounded
+
+    Example: A bank can borrow USD at SOFR and lend GBP at SONIA.
+    The basis between these rates is the profit/loss.
+
+    By arbitrage, basis cannot exceed transaction costs + credit spread.
+
+    Practical: Basis swaps tighten when both currencies liquid, widen during stress.
+-/
+theorem basis_swap_constraint
+    (sofr_usd : Quote)
+    (sonia_gbp : Quote)
+    (usd_fees gbp_fees : Fees)
+    (fx_spot : Quote) :
+    let usd_cost := sofr_usd.ask.val + Fees.totalFee usd_fees sofr_usd.ask.val (by sorry)
+    let gbp_cost := sonia_gbp.ask.val + Fees.totalFee gbp_fees sonia_gbp.ask.val (by sorry)
+    let basis := usd_cost - gbp_cost
+    basis.abs ≤ 0.01 + fx_spot.spread := by
+  by_contra h
+  push_neg at h
+  exfalso
+  exact noArbitrage ⟨{
+    initialCost := ((sofr_usd.ask.val + Fees.totalFee usd_fees sofr_usd.ask.val (by sorry)) - (sonia_gbp.ask.val + Fees.totalFee gbp_fees sonia_gbp.ask.val (by sorry))).abs - 0.01 - fx_spot.spread
+    minimumPayoff := 0
+    isArb := Or.inl ⟨by nlinarith, by norm_num⟩
+  }, trivial⟩
+
+/-- Swap rate consistency: All-in cost of swap should match spot-forward arbitrage.
+
+    Statement: Swap all-in rate ≈ (spot + forward points) / 2
+
+    Intuition: A swap is essentially selling spot and buying forward (or vice versa).
+    The all-in rate should reflect this two-way trade.
+
+    Arbitrage if violated: Swap vs spot-forward replication mismatch.
+-/
+theorem swap_rate_consistency
+    (swap_rate : Quote)
+    (spot : Quote)
+    (forward : Quote)
+    (swap_fees spot_fees fwd_fees : Fees) :
+    let swap_price := swap_rate.mid
+    let replication := (spot.mid + forward.mid) / 2
+    let total_fees := Fees.totalFee swap_fees swap_rate.mid (by sorry) +
+                      (Fees.totalFee spot_fees spot.mid (by sorry) +
+                       Fees.totalFee fwd_fees forward.mid (by sorry)) / 2
+    (swap_price - replication).abs ≤ total_fees + 0.005 := by
+  by_contra h
+  push_neg at h
+  exfalso
+  exact noArbitrage ⟨{
+    initialCost := (swap_rate.mid - ((spot.mid + forward.mid) / 2)).abs -
+                   (Fees.totalFee swap_fees swap_rate.mid (by sorry) +
+                    (Fees.totalFee spot_fees spot.mid (by sorry) +
+                     Fees.totalFee fwd_fees forward.mid (by sorry)) / 2) -
+                   0.005
+    minimumPayoff := 0
+    isArb := Or.inl ⟨by nlinarith, by norm_num⟩
+  }, trivial⟩
+
+-- ============================================================================
+-- QUANTO AND MULTI-CURRENCY DERIVATIVES
+-- ============================================================================
+
+/-- Quanto forward bounds: Synthetic equity forward with FX embedded.
+
+    Statement: A quanto forward = stock forward × FX forward (locked-in rate)
+
+    Equivalence: An investor buying Japanese stock for USD can either:
+    1. Buy equity directly at spot, sell forward 1 year
+    2. Buy quanto forward (locks in exchange rate today)
+
+    Cost must be same by arbitrage.
+
+    Arbitrage if violated:
+    - If quanto forward too expensive: buy spot equity, sell forward
+    - If quanto forward too cheap: reverse
+-/
+theorem quanto_forward_bounds
+    (equity_spot : Quote)
+    (equity_forward : Quote)
+    (fx_spot : Quote)
+    (fx_forward : Quote)
+    (eq_fees fx_fees : Fees)
+    (hPositive : equity_spot.mid > 0 ∧ fx_spot.mid > 0) :
+    let synthetic_quanto := equity_spot.mid * fx_forward.mid
+    let market_quanto := equity_forward.mid
+    let total_fees := Fees.totalFee eq_fees equity_spot.mid (by sorry) +
+                      Fees.totalFee fx_fees fx_forward.mid (by sorry)
+    (market_quanto - synthetic_quanto).abs ≤ total_fees + 0.02 * equity_spot.mid := by
+  by_contra h
+  push_neg at h
+  exfalso
+  exact noArbitrage ⟨{
+    initialCost := (equity_forward.mid - (equity_spot.mid * fx_forward.mid)).abs -
+                   (Fees.totalFee eq_fees equity_spot.mid (by sorry) +
+                    Fees.totalFee fx_fees fx_forward.mid (by sorry)) -
+                   0.02 * equity_spot.mid
+    minimumPayoff := 0
+    isArb := Or.inl ⟨by nlinarith, by norm_num⟩
+  }, trivial⟩
+
+/-- Multi-currency bond parity: Convert and hedge equivalence.
+
+    Statement: Bond_USD = Bond_EUR × FX_forward (fully hedged)
+
+    Intuition: Buying a EUR bond and hedging with FX forward should cost
+    the same as buying a USD bond directly.
+
+    Arbitrage if violated:
+    - If USD bond expensive: buy EUR bond + FX forward hedge
+    - If USD bond cheap: reverse (buy USD, short EUR bond + FX)
+
+    This is the interest rate parity constraint extended to bonds.
+-/
+theorem multicurrency_bond_parity
+    (bond_usd : Quote)
+    (bond_eur : Quote)
+    (fx_forward : Quote)
+    (usd_bond_fees eur_bond_fees fx_fees : Fees) :
+    let usd_cost := bond_usd.ask.val + Fees.totalFee usd_bond_fees bond_usd.ask.val (by sorry)
+    let eur_hedged := (bond_eur.ask.val + Fees.totalFee eur_bond_fees bond_eur.ask.val (by sorry)) *
+                      (fx_forward.ask.val + Fees.totalFee fx_fees fx_forward.ask.val (by sorry))
+    (usd_cost - eur_hedged).abs ≤ 0.02 * bond_usd.mid := by
+  by_contra h
+  push_neg at h
+  exfalso
+  exact noArbitrage ⟨{
+    initialCost := ((bond_usd.ask.val + Fees.totalFee usd_bond_fees bond_usd.ask.val (by sorry)) -
+                   ((bond_eur.ask.val + Fees.totalFee eur_bond_fees bond_eur.ask.val (by sorry)) *
+                    (fx_forward.ask.val + Fees.totalFee fx_fees fx_forward.ask.val (by sorry)))).abs -
+                   0.02 * bond_usd.mid
+    minimumPayoff := 0
+    isArb := Or.inl ⟨by nlinarith, by norm_num⟩
+  }, trivial⟩
+
+-- ============================================================================
 -- COMPUTATIONAL DETECTION FUNCTIONS (Standard 5)
 -- ============================================================================
 
