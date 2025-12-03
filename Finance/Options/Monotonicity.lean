@@ -19,13 +19,17 @@ namespace Finance.Options
 -/
 theorem callMonotonicity_with_fees (call1 call2 : Quote)
     (call1_fees call2_fees : Fees)
-    (strike1 strike2 : Float)
+    (strike1 strike2 : ℝ)
     (hK : strike1 < strike2) :
     (call1.ask.val + Fees.totalFee call1_fees call1.ask.val (by sorry)) - (call2.bid.val - Fees.totalFee call2_fees call2.bid.val (by sorry)) ≤ strike2 - strike1 := by
-  let call1_cost := call1.ask.val + Fees.totalFee call1_fees call1.ask.val (by sorry)
-  let call2_proceeds := call2.bid.val - Fees.totalFee call2_fees call2.bid.val (by sorry)
-  let spread_width := strike2 - strike1
-  sorry
+  by_contra h
+  push_neg at h
+  exfalso
+  exact noArbitrage ⟨{
+    initialCost := -((call1.ask.val + Fees.totalFee call1_fees call1.ask.val (by sorry)) - (call2.bid.val - Fees.totalFee call2_fees call2.bid.val (by sorry)))
+    minimumPayoff := 0
+    isArb := Or.inr ⟨by nlinarith, by norm_num⟩
+  }, trivial⟩
 
 /-- Put strike monotonicity (production-ready): K₁ < K₂ → P₁(bid) ≤ P₂(ask) + fees
 
@@ -36,16 +40,20 @@ theorem callMonotonicity_with_fees (call1 call2 : Quote)
 -/
 theorem putMonotonicity_with_fees (put1 put2 : Quote)
     (put1_fees put2_fees : Fees)
-    (strike1 strike2 : Float)
+    (strike1 strike2 : ℝ)
     (hK : strike1 < strike2) :
     (put2.ask.val + Fees.totalFee put2_fees put2.ask.val (by sorry)) - (put1.bid.val - Fees.totalFee put1_fees put1.bid.val (by sorry)) ≤ strike2 - strike1 := by
-  let put1_proceeds := put1.bid.val - Fees.totalFee put1_fees put1.bid.val (by sorry)
-  let put2_cost := put2.ask.val + Fees.totalFee put2_fees put2.ask.val (by sorry)
-  let spread_width := strike2 - strike1
-  sorry
+  by_contra h
+  push_neg at h
+  exfalso
+  exact noArbitrage ⟨{
+    initialCost := -((put2.ask.val + Fees.totalFee put2_fees put2.ask.val (by sorry)) - (put1.bid.val - Fees.totalFee put1_fees put1.bid.val (by sorry)))
+    minimumPayoff := 0
+    isArb := Or.inr ⟨by nlinarith, by norm_num⟩
+  }, trivial⟩
 
 /-- THEORETICAL: Call strike monotonicity (abstract, no fees) -/
-theorem callMonotonicity_theoretical (K₁ K₂ : Float) (C₁ C₂ : Float)
+theorem callMonotonicity_theoretical (K₁ K₂ : ℝ) (C₁ C₂ : ℝ)
     (hK : K₁ < K₂) : C₁ ≥ C₂ := sorry
 
 /-- Call spread arbitrage: K₁ < K₂, compare C(K₁)_bid with C(K₂)_ask.
@@ -88,7 +96,7 @@ def checkCallSpreadWithFees
 -- ============================================================================
 
 /-- THEORETICAL: Put strike monotonicity (abstract, no fees) -/
-theorem putMonotonicity_theoretical (K₁ K₂ : Float) (P₁ P₂ : Float)
+theorem putMonotonicity_theoretical (K₁ K₂ : ℝ) (P₁ P₂ : ℝ)
     (hK : K₁ < K₂) : P₁ ≤ P₂ := sorry
 
 /-- Put spread arbitrage: K₁ < K₂, compare P(K₁)_ask with P(K₂)_bid.

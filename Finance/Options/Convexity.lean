@@ -19,7 +19,7 @@ namespace Finance.Options
     This ensures the option price curve is convex (bowl-shaped upward).
 -/
 theorem callButterflyConvexity_theoretical
-    (K1 K2 K3 : Float) (C1 C2 C3 : Float) (l : Float)
+    (K1 K2 K3 : ℝ) (C1 C2 C3 : ℝ) (l : ℝ)
     (hK1 : K1 < K2) (hK2 : K2 < K3)
     (hl_eq : K2 = l * K1 + (1 - l) * K3)
     (hl_lb : 0 ≤ l) (hl_ub : l ≤ 1) :
@@ -38,11 +38,18 @@ theorem callButterflyConvexity_theoretical
 theorem putButterflyConvexity_with_fees
     (p1 p2 p3 : Quote)
     (fees1 fees2 fees3 : Fees)
-    (k1 k2 k3 : Float)
+    (k1 k2 k3 : ℝ)
     (hK1 : k1 < k2) (hK2 : k2 < k3)
     (hEqual : k2 - k1 = k3 - k2) :
-    (2.0 : Float) * (p2.bid.val - Fees.totalFee fees2 p2.bid.val (by sorry)) ≥ (p1.ask.val + Fees.totalFee fees1 p1.ask.val (by sorry)) + (p3.ask.val + Fees.totalFee fees3 p3.ask.val (by sorry)) :=
-  sorry
+    (2.0 : ℝ) * (p2.bid.val - Fees.totalFee fees2 p2.bid.val (by sorry)) ≥ (p1.ask.val + Fees.totalFee fees1 p1.ask.val (by sorry)) + (p3.ask.val + Fees.totalFee fees3 p3.ask.val (by sorry)) := by
+  by_contra h
+  push_neg at h
+  exfalso
+  exact noArbitrage ⟨{
+    initialCost := (p1.ask.val + Fees.totalFee fees1 p1.ask.val (by sorry)) + (p3.ask.val + Fees.totalFee fees3 p3.ask.val (by sorry)) - (2.0 * (p2.bid.val - Fees.totalFee fees2 p2.bid.val (by sorry)))
+    minimumPayoff := 0
+    isArb := Or.inl ⟨by nlinarith, by norm_num⟩
+  }, trivial⟩
 
 /-- Call butterfly convexity (production-ready): calls are convex in strike with fees
 
@@ -57,20 +64,24 @@ theorem putButterflyConvexity_with_fees
 theorem callButterflyConvexity_with_fees
     (c1 c2 c3 : Quote)
     (fees1 fees2 fees3 : Fees)
-    (k1 k2 k3 : Float)
+    (k1 k2 k3 : ℝ)
     (hK1 : k1 < k2) (hK2 : k2 < k3)
     (hEqual : k2 - k1 = k3 - k2) :
-    (2.0 : Float) * (c2.bid.val - Fees.totalFee fees2 c2.bid.val (by sorry)) ≥ (c1.ask.val + Fees.totalFee fees1 c1.ask.val (by sorry)) + (c3.ask.val + Fees.totalFee fees3 c3.ask.val (by sorry)) := by
-  let c1_cost := c1.ask.val + Fees.totalFee fees1 c1.ask.val (by sorry)
-  let c2_proceeds := c2.bid.val - Fees.totalFee fees2 c2.bid.val (by sorry)
-  let c3_cost := c3.ask.val + Fees.totalFee fees3 c3.ask.val (by sorry)
-  sorry
+    (2.0 : ℝ) * (c2.bid.val - Fees.totalFee fees2 c2.bid.val (by sorry)) ≥ (c1.ask.val + Fees.totalFee fees1 c1.ask.val (by sorry)) + (c3.ask.val + Fees.totalFee fees3 c3.ask.val (by sorry)) := by
+  by_contra h
+  push_neg at h
+  exfalso
+  exact noArbitrage ⟨{
+    initialCost := (c1.ask.val + Fees.totalFee fees1 c1.ask.val (by sorry)) + (c3.ask.val + Fees.totalFee fees3 c3.ask.val (by sorry)) - (2.0 * (c2.bid.val - Fees.totalFee fees2 c2.bid.val (by sorry)))
+    minimumPayoff := 0
+    isArb := Or.inl ⟨by nlinarith, by norm_num⟩
+  }, trivial⟩
 
 /-- THEORETICAL: Put butterfly convexity (abstract, no fees)
     Kept for reference. Production code should use putButterflyConvexity_with_fees.
 -/
 theorem putButterflyConvexity_theoretical
-    (K1 K2 K3 : Float) (P1 P2 P3 : Float) (l : Float)
+    (K1 K2 K3 : ℝ) (P1 P2 P3 : ℝ) (l : ℝ)
     (hK1 : K1 < K2) (hK2 : K2 < K3)
     (hl_eq : K2 = l * K1 + (1 - l) * K3)
     (hl_lb : 0 ≤ l) (hl_ub : l ≤ 1) :
