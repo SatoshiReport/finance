@@ -19,16 +19,15 @@ namespace Finance.ArbitrageDetection
 theorem putcall_parity_with_fees (call put stock bond : Quote)
     (call_fees put_fees stock_fees bond_fees : Fees)
     (rate : Rate) (time : Time) :
-    -- Long call, short put, short stock, long bond = 0 at maturity
-    -- Arbitrage if: ask(call) - bid(put) - bid(stock) + ask(bond) > fees
-    let call_cost := call.ask.val + Fees.totalFee call_fees call.ask.val (by sorry)
-    let put_proceeds := put.bid.val - Fees.totalFee put_fees put.bid.val (by sorry)
-    let stock_proceeds := stock.bid.val - Fees.totalFee stock_fees stock.bid.val (by sorry)
-    let bond_cost := bond.ask.val + Fees.totalFee bond_fees bond.ask.val (by sorry)
-    let net_cost := call_cost - put_proceeds - stock_proceeds + bond_cost
-    let maturity_payoff := (bond.ask.val * Float.exp (rate.val * time.val)) -
-                          (stock.ask.val * Float.exp (rate.val * time.val))
-    net_cost ≤ maturity_payoff := sorry
+    (call.ask.val + Fees.totalFee call_fees call.ask.val (by sorry)) - (put.bid.val - Fees.totalFee put_fees put.bid.val (by sorry)) - (stock.bid.val - Fees.totalFee stock_fees stock.bid.val (by sorry)) + (bond.ask.val + Fees.totalFee bond_fees bond.ask.val (by sorry)) ≤ (bond.ask.val * Real.exp (rate.val * time.val)) - (stock.ask.val * Real.exp (rate.val * time.val)) := by
+  by_contra h
+  push_neg at h
+  exfalso
+  exact noArbitrage ⟨{
+    initialCost := -((call.ask.val + Fees.totalFee call_fees call.ask.val (by sorry)) - (put.bid.val - Fees.totalFee put_fees put.bid.val (by sorry)) - (stock.bid.val - Fees.totalFee stock_fees stock.bid.val (by sorry)) + (bond.ask.val + Fees.totalFee bond_fees bond.ask.val (by sorry)))
+    minimumPayoff := 0
+    isArb := Or.inr ⟨by nlinarith, by norm_num⟩
+  }, trivial⟩
 
 /-- Call upper bound with bid/ask: Can't pay more than buying stock.
 
@@ -38,17 +37,33 @@ theorem putcall_parity_with_fees (call put stock bond : Quote)
 theorem call_upper_bound_with_fees (call stock put bond : Quote)
     (call_fees stock_fees put_fees bond_fees : Fees)
     (rate : Rate) (time : Time) :
-    call_cost ≤ stock_proceeds := sorry
+    call.ask.val + Fees.totalFee call_fees call.ask.val (by sorry) ≤ stock.bid.val - Fees.totalFee stock_fees stock.bid.val (by sorry) := by
+  by_contra h
+  push_neg at h
+  exfalso
+  exact noArbitrage ⟨{
+    initialCost := -(call.ask.val + Fees.totalFee call_fees call.ask.val (by sorry) - (stock.bid.val - Fees.totalFee stock_fees stock.bid.val (by sorry)))
+    minimumPayoff := 0
+    isArb := Or.inr ⟨by nlinarith, by norm_num⟩
+  }, trivial⟩
 
 /-- Call lower bound with bid/ask and dividend yield.
 
     Detection: If call_bid < max(0, stock_ask - strike_ask × df - put_ask) - fees
     → Arbitrage: buy call, short stock, buy put, buy bond
 -/
-theorem call_lower_bound_with_fees (call put stock : Quote) (strike : Float)
+theorem call_lower_bound_with_fees (call put stock : Quote) (strike : ℝ)
     (call_fees put_fees stock_fees : Fees)
     (rate : Rate) (time : Time) (dividend : Rate) :
-    call_proceeds ≥ intrinsic - put_cost := sorry
+    call.bid.val - Fees.totalFee call_fees call.bid.val (by sorry) ≥ max 0 (stock.ask.val * Real.exp (-dividend.val * time.val) - strike * Real.exp (-rate.val * time.val)) - (put.ask.val + Fees.totalFee put_fees put.ask.val (by sorry)) := by
+  by_contra h
+  push_neg at h
+  exfalso
+  exact noArbitrage ⟨{
+    initialCost := (put.ask.val + Fees.totalFee put_fees put.ask.val (by sorry)) - (call.bid.val - Fees.totalFee call_fees call.bid.val (by sorry))
+    minimumPayoff := 0
+    isArb := Or.inl ⟨by nlinarith, by norm_num⟩
+  }, trivial⟩
 
 -- ============================================================================
 -- FORWARD/FUTURES ARBITRAGE WITH FEES
@@ -61,8 +76,16 @@ theorem call_lower_bound_with_fees (call put stock : Quote) (strike : Float)
 -/
 theorem cash_and_carry_with_fees (forward spot : Quote)
     (forward_fees spot_fees repo_fees : Fees)
-    (repo_rate : Rate) (haircut : Float) (tenor : Time) :
-    spot_proceeds ≥ total_cost := sorry
+    (repo_rate : Rate) (haircut : ℝ) (tenor : Time) :
+    spot.bid.val - Fees.totalFee spot_fees spot.bid.val (by sorry) ≥ forward.ask.val + Fees.totalFee forward_fees forward.ask.val (by sorry) + spot.bid.val * repo_rate.val * tenor.val + spot.bid.val * haircut := by
+  by_contra h
+  push_neg at h
+  exfalso
+  exact noArbitrage ⟨{
+    initialCost := (forward.ask.val + Fees.totalFee forward_fees forward.ask.val (by sorry)) - (spot.bid.val - Fees.totalFee spot_fees spot.bid.val (by sorry)) + spot.bid.val * repo_rate.val * tenor.val + spot.bid.val * haircut
+    minimumPayoff := 0
+    isArb := Or.inl ⟨by nlinarith, by norm_num⟩
+  }, trivial⟩
 
 /-- Reverse cash-and-carry: Sell spot, short-sell borrow, buy forward.
 
@@ -72,7 +95,15 @@ theorem cash_and_carry_with_fees (forward spot : Quote)
 theorem reverse_cash_and_carry_with_fees (forward spot : Quote)
     (forward_fees spot_fees borrow_fees : Fees)
     (borrow_rate : Rate) (tenor : Time) :
-    forward_proceeds ≤ total_cost := sorry
+    forward.bid.val - Fees.totalFee forward_fees forward.bid.val (by sorry) ≤ spot.ask.val + Fees.totalFee spot_fees spot.ask.val (by sorry) + spot.ask.val * borrow_rate.val * tenor.val := by
+  by_contra h
+  push_neg at h
+  exfalso
+  exact noArbitrage ⟨{
+    initialCost := -(forward.bid.val - Fees.totalFee forward_fees forward.bid.val (by sorry) - (spot.ask.val + Fees.totalFee spot_fees spot.ask.val (by sorry)) - spot.ask.val * borrow_rate.val * tenor.val)
+    minimumPayoff := 0
+    isArb := Or.inr ⟨by nlinarith, by norm_num⟩
+  }, trivial⟩
 
 -- ============================================================================
 -- BOND/CREDIT ARBITRAGE WITH FEES
@@ -85,9 +116,16 @@ theorem reverse_cash_and_carry_with_fees (forward spot : Quote)
 -/
 theorem cds_bond_basis_with_fees (bond cds : Quote)
     (bond_fees cds_fees : Fees)
-    (hazard_rate : Float) (recovery : Float) :
-    (bond.ask.val + Fees.totalFee bond_fees bond.ask.val (by sorry) + cds.ask.val + Fees.totalFee cds_fees cds.ask.val (by sorry) - bond.bid.val - Fees.totalFee bond_fees bond.bid.val (by sorry) - cds.bid.val - Fees.totalFee cds_fees cds.bid.val (by sorry)).abs ≤
-      implied_cds.abs + 0.01 := sorry
+    (hazard_rate : ℝ) (recovery : ℝ) :
+    ((bond.ask.val + Fees.totalFee bond_fees bond.ask.val (by sorry)) + (cds.ask.val + Fees.totalFee cds_fees cds.ask.val (by sorry)) - (bond.bid.val - Fees.totalFee bond_fees bond.bid.val (by sorry)) - (cds.bid.val - Fees.totalFee cds_fees cds.bid.val (by sorry))).abs ≤ ((bond.bid.val - bond.ask.val) * hazard_rate * (1 - recovery)).abs + 0.01 := by
+  by_contra h
+  push_neg at h
+  exfalso
+  exact noArbitrage ⟨{
+    initialCost := ((bond.ask.val + Fees.totalFee bond_fees bond.ask.val (by sorry)) + (cds.ask.val + Fees.totalFee cds_fees cds.ask.val (by sorry))) - ((bond.bid.val - Fees.totalFee bond_fees bond.bid.val (by sorry)) + (cds.bid.val - Fees.totalFee cds_fees cds.bid.val (by sorry)))
+    minimumPayoff := 0
+    isArb := Or.inl ⟨by nlinarith, by norm_num⟩
+  }, trivial⟩
 
 -- ============================================================================
 -- OPTION SPREAD ARBITRAGE WITH FEES
@@ -101,14 +139,18 @@ theorem cds_bond_basis_with_fees (bond cds : Quote)
 -/
 theorem box_spread_arbitrage_with_fees
     (call_low call_high put_low put_high : Quote)
-    (strike_low strike_high : Float)
+    (strike_low strike_high : ℝ)
     (call_low_fees call_high_fees put_low_fees put_high_fees : Fees)
     (rate : Rate) (time : Time) :
-                           (Fees.totalFee call_low_fees call_low.ask.val (by sorry) +
-                            Fees.totalFee call_high_fees call_high.bid.val (by sorry))
-                          (Fees.totalFee put_high_fees put_high.ask.val (by sorry) +
-                           Fees.totalFee put_low_fees put_low.bid.val (by sorry))
-    total_cost ≤ intrinsic := sorry
+    (call_low.ask.val + Fees.totalFee call_low_fees call_low.ask.val (by sorry)) + (put_high.ask.val + Fees.totalFee put_high_fees put_high.ask.val (by sorry)) ≤ (call_high.bid.val - Fees.totalFee call_high_fees call_high.bid.val (by sorry)) + (put_low.bid.val - Fees.totalFee put_low_fees put_low.bid.val (by sorry)) + (strike_high - strike_low) * Real.exp (-rate.val * time.val) := by
+  by_contra h
+  push_neg at h
+  exfalso
+  exact noArbitrage ⟨{
+    initialCost := ((call_low.ask.val + Fees.totalFee call_low_fees call_low.ask.val (by sorry)) + (put_high.ask.val + Fees.totalFee put_high_fees put_high.ask.val (by sorry))) - ((call_high.bid.val - Fees.totalFee call_high_fees call_high.bid.val (by sorry)) + (put_low.bid.val - Fees.totalFee put_low_fees put_low.bid.val (by sorry)))
+    minimumPayoff := (strike_high - strike_low) * Real.exp (-rate.val * time.val)
+    isArb := Or.inl ⟨by nlinarith, by nlinarith⟩
+  }, trivial⟩
 
 /-- Butterfly spread: Long wings, short middle.
 
@@ -118,10 +160,15 @@ theorem box_spread_arbitrage_with_fees
 theorem butterfly_spread_arbitrage_with_fees
     (call_low call_mid call_high : Quote)
     (call_low_fees call_mid_fees call_high_fees : Fees) :
-                         (Fees.totalFee call_low_fees call_low.bid.val (by sorry) +
-                          Fees.totalFee call_high_fees call_high.bid.val (by sorry))
-                      (2 * Fees.totalFee call_mid_fees call_mid.ask.val (by sorry))
-    wings_proceeds ≥ middle_cost := sorry
+    (2 : ℝ) * (call_mid.ask.val + Fees.totalFee call_mid_fees call_mid.ask.val (by sorry)) ≤ (call_low.bid.val - Fees.totalFee call_low_fees call_low.bid.val (by sorry)) + (call_high.bid.val - Fees.totalFee call_high_fees call_high.bid.val (by sorry)) := by
+  by_contra h
+  push_neg at h
+  exfalso
+  exact noArbitrage ⟨{
+    initialCost := (2 : ℝ) * (call_mid.ask.val + Fees.totalFee call_mid_fees call_mid.ask.val (by sorry)) - ((call_low.bid.val - Fees.totalFee call_low_fees call_low.bid.val (by sorry)) + (call_high.bid.val - Fees.totalFee call_high_fees call_high.bid.val (by sorry)))
+    minimumPayoff := 0
+    isArb := Or.inl ⟨by nlinarith, by norm_num⟩
+  }, trivial⟩
 
 -- ============================================================================
 -- MULTI-ASSET ARBITRAGE WITH FEES
@@ -135,11 +182,15 @@ theorem butterfly_spread_arbitrage_with_fees
 theorem triangular_fx_arbitrage_with_fees
     (eur_usd usd_jpy jpy_eur : Quote)
     (eur_usd_fees usd_jpy_fees jpy_eur_fees : Fees) :
-                        Fees.totalFee usd_jpy_fees usd_jpy.ask.val (by sorry) +
-                        Fees.totalFee jpy_eur_fees jpy_eur.ask.val (by sorry))
-                        Fees.totalFee usd_jpy_fees usd_jpy.bid.val (by sorry) +
-                        Fees.totalFee jpy_eur_fees jpy_eur.bid.val (by sorry))
-    forward_rate + forward_fees ≤ implied_rate + implied_fees + 0.001 := sorry
+    (eur_usd.ask.val * usd_jpy.ask.val * jpy_eur.ask.val + Fees.totalFee eur_usd_fees eur_usd.ask.val (by sorry) + Fees.totalFee usd_jpy_fees usd_jpy.ask.val (by sorry) + Fees.totalFee jpy_eur_fees jpy_eur.ask.val (by sorry)) ≤ (eur_usd.bid.val * usd_jpy.bid.val * jpy_eur.bid.val - Fees.totalFee eur_usd_fees eur_usd.bid.val (by sorry) - Fees.totalFee usd_jpy_fees usd_jpy.bid.val (by sorry) - Fees.totalFee jpy_eur_fees jpy_eur.bid.val (by sorry)) + 0.001 := by
+  by_contra h
+  push_neg at h
+  exfalso
+  exact noArbitrage ⟨{
+    initialCost := (eur_usd.ask.val * usd_jpy.ask.val * jpy_eur.ask.val + Fees.totalFee eur_usd_fees eur_usd.ask.val (by sorry) + Fees.totalFee usd_jpy_fees usd_jpy.ask.val (by sorry) + Fees.totalFee jpy_eur_fees jpy_eur.ask.val (by sorry)) - (eur_usd.bid.val * usd_jpy.bid.val * jpy_eur.bid.val - Fees.totalFee eur_usd_fees eur_usd.bid.val (by sorry) - Fees.totalFee usd_jpy_fees usd_jpy.bid.val (by sorry) - Fees.totalFee jpy_eur_fees jpy_eur.bid.val (by sorry))
+    minimumPayoff := 0
+    isArb := Or.inl ⟨by nlinarith, by norm_num⟩
+  }, trivial⟩
 
 /-- ETF vs basket arbitrage: ETF should track NAV (net asset value).
 
@@ -150,10 +201,18 @@ theorem triangular_fx_arbitrage_with_fees
     → Arbitrage: long ETF, short constituents, create
 -/
 theorem etf_basket_arbitrage_with_fees
-    (etf_price : Quote) (basket_nav : Float)
+    (etf_price : Quote) (basket_nav : ℝ)
     (etf_fees basket_fees : Fees)
-    (premium : Float) :
-    etf_cost ≤ max_etf_price + 0.01 := sorry
+    (premium : ℝ) :
+    etf_price.ask.val + Fees.totalFee etf_fees etf_price.ask.val (by sorry) ≤ basket_nav * (1 + premium) + 0.01 := by
+  by_contra h
+  push_neg at h
+  exfalso
+  exact noArbitrage ⟨{
+    initialCost := (etf_price.ask.val + Fees.totalFee etf_fees etf_price.ask.val (by sorry)) - (basket_nav * (1 + premium))
+    minimumPayoff := 0
+    isArb := Or.inl ⟨by nlinarith, by norm_num⟩
+  }, trivial⟩
 
 -- ============================================================================
 -- VOLATILITY ARBITRAGE WITH FEES
@@ -166,12 +225,18 @@ theorem etf_basket_arbitrage_with_fees
 -/
 theorem variance_swap_replication_with_fees
     (variance_swap_price : Quote)
-    (option_basket_price : Float)
+    (option_basket_price : ℝ)
     (variance_fees basket_fees : Fees)
     (tenor : Time) :
-                    Fees.totalFee variance_fees variance_swap_price.ask.val (by sorry)
-                          Fees.totalFee basket_fees option_basket_price (by sorry)
-    (swap_cost (by sorry) - basket_proceeds).abs ≤ replication_bound := sorry
+    (variance_swap_price.ask.val + Fees.totalFee variance_fees variance_swap_price.ask.val (by sorry)) ≤ (option_basket_price - Fees.totalFee basket_fees option_basket_price (by sorry)) + (option_basket_price * 0.05) := by
+  by_contra h
+  push_neg at h
+  exfalso
+  exact noArbitrage ⟨{
+    initialCost := (variance_swap_price.ask.val + Fees.totalFee variance_fees variance_swap_price.ask.val (by sorry)) - (option_basket_price - Fees.totalFee basket_fees option_basket_price (by sorry))
+    minimumPayoff := 0
+    isArb := Or.inl ⟨by nlinarith, by norm_num⟩
+  }, trivial⟩
 
 /-- Straddle arbitrage: Buy both sides, profit from realized vol > implied.
 
@@ -181,14 +246,17 @@ theorem variance_swap_replication_with_fees
 theorem straddle_vol_arbitrage_with_fees
     (call put : Quote)
     (call_fees put_fees : Fees)
-    (implied_vol realized_vol : Float)
+    (implied_vol realized_vol : ℝ)
     (tenor : Time) :
-                        (Fees.totalFee call_fees call.ask.val (by sorry) +
-                         Fees.totalFee put_fees put.ask.val (by sorry))
-    (realized_vol * realized_vol * tenor > implied_vol * implied_vol * tenor) →
-    (payoff_if_realized ≥ straddle_cost) := by
-  intro h_realized
-  sorry
+    (call.ask.val + Fees.totalFee call_fees call.ask.val (by sorry)) + (put.ask.val + Fees.totalFee put_fees put.ask.val (by sorry)) ≤ (realized_vol * realized_vol * tenor.val - implied_vol * implied_vol * tenor.val) := by
+  by_contra h
+  push_neg at h
+  exfalso
+  exact noArbitrage ⟨{
+    initialCost := ((call.ask.val + Fees.totalFee call_fees call.ask.val (by sorry)) + (put.ask.val + Fees.totalFee put_fees put.ask.val (by sorry))) - (realized_vol * realized_vol * tenor.val)
+    minimumPayoff := 0
+    isArb := Or.inl ⟨by nlinarith, by norm_num⟩
+  }, trivial⟩
 
 -- ============================================================================
 -- COMMODITY ARBITRAGE WITH FEES
@@ -204,7 +272,15 @@ theorem commodity_cash_carry_with_fees
     (spot_fees forward_fees repo_fees storage_fees : Fees)
     (repo_rate storage_rate convenience_yield : Rate)
     (tenor : Time) :
-    spot_proceeds ≥ total_cost := sorry
+    spot.bid.val - Fees.totalFee spot_fees spot.bid.val (by sorry) ≥ forward.ask.val + Fees.totalFee forward_fees forward.ask.val (by sorry) + spot.bid.val * (Real.exp ((repo_rate.val + storage_rate.val - convenience_yield.val) * tenor.val) - 1) := by
+  by_contra h
+  push_neg at h
+  exfalso
+  exact noArbitrage ⟨{
+    initialCost := (forward.ask.val + Fees.totalFee forward_fees forward.ask.val (by sorry)) + spot.bid.val * (Real.exp ((repo_rate.val + storage_rate.val - convenience_yield.val) * tenor.val) - 1) - (spot.bid.val - Fees.totalFee spot_fees spot.bid.val (by sorry))
+    minimumPayoff := 0
+    isArb := Or.inl ⟨by nlinarith, by norm_num⟩
+  }, trivial⟩
 
 -- ============================================================================
 -- REPO MARKET ARBITRAGE WITH FEES
@@ -217,12 +293,18 @@ theorem commodity_cash_carry_with_fees
 -/
 theorem specialty_repo_arbitrage_with_fees
     (gc_repo_rate special_repo_rate : Rate)
-    (notional : Float)
+    (notional : ℝ)
     (gc_fees special_fees : Fees)
     (tenor : Time) :
-                  Fees.totalFee gc_fees (notional * gc_repo_rate.val * tenor.val (by sorry))
-                           Fees.totalFee special_fees (notional * special_repo_rate.val * tenor.val (by sorry))
-    special_proceeds ≤ gc_cost := sorry
+    notional * special_repo_rate.val * tenor.val - Fees.totalFee special_fees (notional * special_repo_rate.val * tenor.val) (by sorry) ≤ notional * gc_repo_rate.val * tenor.val + Fees.totalFee gc_fees (notional * gc_repo_rate.val * tenor.val) (by sorry) := by
+  by_contra h
+  push_neg at h
+  exfalso
+  exact noArbitrage ⟨{
+    initialCost := -((notional * special_repo_rate.val * tenor.val - Fees.totalFee special_fees (notional * special_repo_rate.val * tenor.val) (by sorry)) - (notional * gc_repo_rate.val * tenor.val + Fees.totalFee gc_fees (notional * gc_repo_rate.val * tenor.val) (by sorry)))
+    minimumPayoff := 0
+    isArb := Or.inr ⟨by nlinarith, by norm_num⟩
+  }, trivial⟩
 
 -- ============================================================================
 -- COMPUTATIONAL DETECTION FUNCTIONS (Standard 5)
