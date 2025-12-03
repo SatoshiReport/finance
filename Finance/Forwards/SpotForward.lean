@@ -11,7 +11,7 @@ namespace Finance.Forwards
 
 /-- A forward contract: obligation to buy underlying at strike F at time T. -/
 structure Forward where
-  strike : Float  -- The agreed forward price
+  strike : ℝ  -- The agreed forward price
   expiry : Time
 
 /-- The forward price under cost of carry: F = S·e^((r-q)T)
@@ -27,8 +27,8 @@ structure Forward where
     2. Foregone dividends/yield (receiving at rate q by holding spot)
     3. Net effect: F = S·e^((r-q)T)
 -/
-def forwardPrice (spot : Float) (rate : Rate) (yield : Rate) (time : Time) : Float :=
-  spot * Float.exp ((rate.val - yield.val) * time.val)
+noncomputable def forwardPrice (spot : ℝ) (rate : Rate) (yield : Rate) (time : Time) : ℝ :=
+  spot * Real.exp ((rate.val - yield.val) * time.val)
 
 -- ============================================================================
 -- Spot-Forward Parity
@@ -57,8 +57,8 @@ def forwardPrice (spot : Float) (rate : Rate) (yield : Rate) (time : Time) : Flo
     - If F > S·e^((r-q)T): sell spot + buy forward
 -/
 theorem spotForwardParity
-    (spot : Float) (rate yield : Rate) (time : Time)
-    (F : Float) :
+    (spot : ℝ) (rate yield : Rate) (time : Time)
+    (F : ℝ) :
     F = forwardPrice spot rate yield time := by
   -- Spot-Forward Parity is the fundamental no-arbitrage relationship.
   -- Proof: Consider replicating a forward contract with cash and spot:
@@ -86,9 +86,9 @@ theorem spotForwardParity
 
     If positive: forward is too expensive, sell it.
 -/
-def checkForwardTooExpensive
-    (spotAsk : Float) (forwardBid : Float) (rate yield : Rate) (time : Time) :
-    Float :=
+noncomputable def checkForwardTooExpensive
+    (spotAsk : ℝ) (forwardBid : ℝ) (rate yield : Rate) (time : Time) :
+    ℝ :=
   let df := Rate.discountFactor rate time
   let theoreticalForward := forwardPrice spotAsk rate yield time
   forwardBid - theoreticalForward
@@ -102,21 +102,21 @@ def checkForwardTooExpensive
 
     If positive: forward is too cheap, buy it.
 -/
-def checkForwardToocheap
-    (spotBid : Float) (forwardAsk : Float) (rate yield : Rate) (time : Time) :
-    Float :=
+noncomputable def checkForwardToocheap
+    (spotBid : ℝ) (forwardAsk : ℝ) (rate yield : Rate) (time : Time) :
+    ℝ :=
   let theoreticalForward := forwardPrice spotBid rate yield time
   theoreticalForward - forwardAsk
 
 /-- A forward price violation. -/
 structure ForwardViolation where
   deviationType : String  -- "overpriced" or "underpriced"
-  deviationSize : Float   -- How much forward deviates from fair value
-  profitOpportunity : Float  -- Net profit after accounting for deviations
+  deviationSize : ℝ   -- How much forward deviates from fair value
+  profitOpportunity : ℝ  -- Net profit after accounting for deviations
 
 /-- Check if forward contract shows arbitrage opportunity. -/
-def hasForwardArbitrage
-    (spotQuote : Quote) (forwardBid forwardAsk : Float)
+noncomputable def hasForwardArbitrage
+    (spotQuote : Quote) (forwardBid forwardAsk : ℝ)
     (rate yield : Rate) (time : Time) :
     Bool :=
   let overpriced := checkForwardTooExpensive spotQuote.ask.val forwardBid rate yield time
@@ -124,8 +124,8 @@ def hasForwardArbitrage
   overpriced > 0 || underpriced > 0
 
 /-- Analyze forward for arbitrage with fees. -/
-def analyzeForwardArbitrage
-    (spotQuote : Quote) (forwardBid forwardAsk : Float)
+noncomputable def analyzeForwardArbitrage
+    (spotQuote : Quote) (forwardBid forwardAsk : ℝ)
     (rate yield : Rate) (time : Time)
     (spotFees forwardFees : Fees) :
     Option ForwardViolation :=
@@ -177,9 +177,9 @@ def carryRate (rate yield : Rate) : Rate :=
     - Financial assets: storage negligible
     - Perishables: negative storage (spoilage)
 -/
-def forwardPriceWithStorage
-    (spot : Float) (rate yield storage : Rate) (time : Time) : Float :=
-  spot * Float.exp ((rate.val + storage.val - yield.val) * time.val)
+noncomputable def forwardPriceWithStorage
+    (spot : ℝ) (rate yield storage : Rate) (time : Time) : ℝ :=
+  spot * Real.exp ((rate.val + storage.val - yield.val) * time.val)
 
 -- ============================================================================
 -- Forward Basis
@@ -192,17 +192,17 @@ def forwardPriceWithStorage
     Basis should be predictable and should decrease as expiry approaches.
     Abnormal basis = arbitrage opportunity.
 -/
-def basis (forward spot : Float) : Float :=
+def basis (forward spot : ℝ) : ℝ :=
   forward - spot
 
 /-- Theoretical basis accounting for carry. -/
-def theoreticalBasis (spot : Float) (rate yield : Rate) (time : Time) : Float :=
-  spot * (Float.exp ((rate.val - yield.val) * time.val) - 1)
+noncomputable def theoreticalBasis (spot : ℝ) (rate yield : Rate) (time : Time) : ℝ :=
+  spot * (Real.exp ((rate.val - yield.val) * time.val) - 1)
 
 /-- Check if basis is abnormal (too wide or too narrow). -/
-def checkBasisViolation
-    (forward spot : Float) (rate yield : Rate) (time : Time) :
-    Float :=
+noncomputable def checkBasisViolation
+    (forward spot : ℝ) (rate yield : Rate) (time : Time) :
+    ℝ :=
   let actualBasis := basis forward spot
   let theoretical := theoreticalBasis spot rate yield time
   -- Positive = basis too wide (forward too expensive)

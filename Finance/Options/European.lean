@@ -28,16 +28,16 @@ def sameTerms (call : EuropeanCall) (put : EuropeanPut) : Prop :=
 -- ============================================================================
 
 /-- The price of a European call option. -/
-def CallPrice := Float
+def CallPrice := ℝ
 
 /-- The price of a European put option. -/
-def PutPrice := Float
+def PutPrice := ℝ
 
 /-- The price of the underlying (spot price). -/
 def SpotPrice := PosReal
 
 /-- A forward price for delivery at time T. -/
-def ForwardPrice := Float
+def ForwardPrice := ℝ
 
 -- ============================================================================
 -- Put-Call Parity: Theoretical (no friction)
@@ -73,7 +73,7 @@ def ForwardPrice := Float
 -/
 theorem putCallParity
     (call : EuropeanCall) (put : EuropeanPut) (spot : SpotPrice) (rate : Rate)
-    (C P : Float)
+    (C P : ℝ)
     (h : sameTerms call put) :
     C - P = spot.val - call.strike.val * Rate.discountFactor rate call.expiry := by
   -- Proof by contradiction using noArbitrage axiom
@@ -154,7 +154,7 @@ theorem putCallParityWithBidAsk
 -/
 structure PCPViolation where
   violationType : Int  -- 1 for long, 2 for short
-  deviationSize : Float  -- absolute size of the violation
+  deviationSize : ℝ  -- absolute size of the violation
   deviation_pos : deviationSize > 0
 
 /-- Check if long synthetic (buy call, sell put, short spot, buy bonds) is mispriced.
@@ -164,11 +164,11 @@ structure PCPViolation where
 
     If positive: opportunity to profit by going long synthetic.
 -/
-def checkLongSyntheticArbitrage
+noncomputable def checkLongSyntheticArbitrage
     (call : EuropeanCall) (put : EuropeanPut)
     (quotes : OptionQuotes) (spot : Quote) (rate : Rate)
     (h : sameTerms call put) :
-    Float :=
+    ℝ :=
   let df := Rate.discountFactor rate call.expiry
   let pcp_upper := spot.bid.val - call.strike.val * df
   let synthetic_cost := quotes.call.ask.val - quotes.put.bid.val
@@ -181,11 +181,11 @@ def checkLongSyntheticArbitrage
 
     If positive: opportunity to profit by going short synthetic.
 -/
-def checkShortSyntheticArbitrage
+noncomputable def checkShortSyntheticArbitrage
     (call : EuropeanCall) (put : EuropeanPut)
     (quotes : OptionQuotes) (spot : Quote) (rate : Rate)
     (h : sameTerms call put) :
-    Float :=
+    ℝ :=
   let df := Rate.discountFactor rate call.expiry
   let pcp_lower := spot.ask.val - call.strike.val * df
   let synthetic_return := quotes.call.bid.val - quotes.put.ask.val
@@ -195,7 +195,7 @@ def checkShortSyntheticArbitrage
 
     The arbitrage profit is the larger of the two deviations, minus trading costs.
 -/
-def hasPCPArbitrage
+noncomputable def hasPCPArbitrage
     (call : EuropeanCall) (put : EuropeanPut)
     (quotes : OptionQuotes) (spot : Quote) (rate : Rate)
     (h : sameTerms call put) :
@@ -221,12 +221,12 @@ def hasPCPArbitrage
 
     Fees apply to each trade: call buy, put sell, spot short.
 -/
-def longSyntheticProfit
+noncomputable def longSyntheticProfit
     (call : EuropeanCall) (put : EuropeanPut)
     (quotes : OptionQuotes) (spot : Quote) (rate : Rate)
     (callFees putFees spotFees : Fees)
     (h : sameTerms call put) :
-    Float :=
+    ℝ :=
   let df := Rate.discountFactor rate call.expiry
 
   -- Deviation
@@ -243,7 +243,7 @@ def longSyntheticProfit
   gross_profit - total_fees
 
 /-- Check if long synthetic is profitable after fees. -/
-def longSyntheticArb
+noncomputable def longSyntheticArb
     (call : EuropeanCall) (put : EuropeanPut)
     (quotes : OptionQuotes) (spot : Quote) (rate : Rate)
     (callFees putFees spotFees : Fees)
@@ -265,12 +265,12 @@ def longSyntheticArb
 
     Net: C_bid - P_ask - S_ask + K*e^(-r*T)
 -/
-def shortSyntheticProfit
+noncomputable def shortSyntheticProfit
     (call : EuropeanCall) (put : EuropeanPut)
     (quotes : OptionQuotes) (spot : Quote) (rate : Rate)
     (callFees putFees spotFees : Fees)
     (h : sameTerms call put) :
-    Float :=
+    ℝ :=
   let df := Rate.discountFactor rate call.expiry
 
   -- Deviation
@@ -287,7 +287,7 @@ def shortSyntheticProfit
   gross_profit - total_fees
 
 /-- Check if short synthetic is profitable after fees. -/
-def shortSyntheticArb
+noncomputable def shortSyntheticArb
     (call : EuropeanCall) (put : EuropeanPut)
     (quotes : OptionQuotes) (spot : Quote) (rate : Rate)
     (callFees putFees spotFees : Fees)
@@ -307,13 +307,13 @@ def shortSyntheticArb
 -/
 structure PCPArbitrageOpportunity where
   arbitrageType : String  -- "long_synthetic" or "short_synthetic"
-  grossProfit : Float
-  fees : Float
-  netProfit : Float
-  profitPercentage : Float  -- as percentage of capital required
+  grossProfit : ℝ
+  fees : ℝ
+  netProfit : ℝ
+  profitPercentage : ℝ  -- as percentage of capital required
 
 /-- Unified PCP arbitrage detection. -/
-def detectPCPArbitrage
+noncomputable def detectPCPArbitrage
     (call : EuropeanCall) (put : EuropeanPut)
     (quotes : OptionQuotes) (spot : Quote) (rate : Rate)
     (callFees putFees spotFees : Fees)
@@ -329,7 +329,7 @@ def detectPCPArbitrage
     let spot_fee := Fees.totalFee spotFees spot.bid.val (by sorry)
     let total_fees := call_fee + put_fee + spot_fee
     let capital := quotes.call.ask.val + spot.bid.val
-    let pct : Float := if capital > 0 then (100 : Float) * (long_profit : Float) / (capital : Float) else 0
+    let pct : ℝ := if capital > 0 then (100 : ℝ) * long_profit / capital else 0
     some ⟨"long_synthetic", long_dev, total_fees, long_profit, pct⟩
   else if short_profit > 0 then
     let short_dev := checkShortSyntheticArbitrage call put quotes spot rate h
@@ -338,7 +338,7 @@ def detectPCPArbitrage
     let spot_fee := Fees.totalFee spotFees spot.ask.val (by sorry)
     let total_fees := call_fee + put_fee + spot_fee
     let capital := quotes.call.bid.val + spot.ask.val
-    let pct : Float := if capital > 0 then (100 : Float) * (short_profit : Float) / (capital : Float) else 0
+    let pct : ℝ := if capital > 0 then (100 : ℝ) * short_profit / capital else 0
     some ⟨"short_synthetic", short_dev, total_fees, short_profit, pct⟩
   else
     none
