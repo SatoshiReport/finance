@@ -86,7 +86,7 @@ theorem itos_lemma_constraint (f_t f_x f_xx mu sigma : Float)
 theorem lognormal_property (spot drift volatility time : Float)
     (hSpot : spot > 0)
     (hVol : volatility > 0)
-    (hTime : time.val > 0) :
+    (hTime : time > 0) :
     -- E[S_T] = S_0 × e^(μT) (drift determines expected return)
     let expected_spot := spot * Float.exp (drift * time)
     expected_spot > spot ∨ expected_spot ≤ spot := by
@@ -223,7 +223,7 @@ theorem quadratic_variation_of_brownian (time : Time)
     - If variance swap payoff ≠ realized variance: immediate arb
 -/
 theorem realized_volatility_equals_quadratic_variation (realized_vol_squared time : Float)
-    (hTime : time.val > 0)
+    (hTime : time > 0)
     (hVol : realized_vol_squared ≥ 0) :
     -- Realized variance matches quadratic variation
     realized_vol_squared * time ≥ 0 ∧ realized_vol_squared * time ≤ 1000 := by
@@ -349,8 +349,8 @@ def checkQuadraticVariationOfBrownian
 def checkRealizedVolatilityEqualsQuadraticVariation
     (realized_vol quadratic_var : Float) :
     Bool :=
-  (realized_vol_squared - quadratic_var).abs ≤ quadratic_var * 0.01
   let realized_vol_squared := realized_vol * realized_vol
+  (realized_vol_squared - quadratic_var).abs ≤ quadratic_var * 0.01
 
 /-- Check jump-diffusion pricing -/
 def checkJumpDiffusionPricing

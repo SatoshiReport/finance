@@ -25,6 +25,28 @@ def toFloat (r : PosReal) : Float := r.val
 /-- Convert from PosReal to Float explicitly. -/
 instance : Coe PosReal Float := ⟨toFloat⟩
 
+-- ============================================================================
+-- Heterogeneous Arithmetic Instances (PosReal <-> Float)
+-- ============================================================================
+
+/-- Heterogeneous addition: PosReal + Float = Float -/
+instance : HAdd PosReal Float Float := ⟨fun a b => a.val + b⟩
+
+/-- Heterogeneous addition: Float + PosReal = Float -/
+instance : HAdd Float PosReal Float := ⟨fun a b => a + b.val⟩
+
+/-- Heterogeneous subtraction: PosReal - Float = Float -/
+instance : HSub PosReal Float Float := ⟨fun a b => a.val - b⟩
+
+/-- Heterogeneous subtraction: Float - PosReal = Float -/
+instance : HSub Float PosReal Float := ⟨fun a b => a - b.val⟩
+
+/-- Heterogeneous multiplication: PosReal * Float = Float -/
+instance : HMul PosReal Float Float := ⟨fun a b => a.val * b⟩
+
+/-- Heterogeneous multiplication: Float * PosReal = Float -/
+instance : HMul Float PosReal Float := ⟨fun a b => a * b.val⟩
+
 /-- Addition of positive reals (result is positive). -/
 def add (a b : PosReal) : PosReal :=
   ⟨a.val + b.val, by sorry⟩  -- Float addition of positive values is positive

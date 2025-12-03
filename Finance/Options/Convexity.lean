@@ -41,7 +41,7 @@ theorem putButterflyConvexity_with_fees
     (k1 k2 k3 : Float)
     (hK1 : k1 < k2) (hK2 : k2 < k3)
     (hEqual : k2 - k1 = k3 - k2) :
-    (2.0 : Float) * (p2.bid.val - Fees.totalFee fees2 p2.bid.val) ≥ (p1.ask.val + Fees.totalFee fees1 p1.ask.val) + (p3.ask.val + Fees.totalFee fees3 p3.ask.val) :=
+    (2.0 : Float) * (p2.bid.val - Fees.totalFee fees2 p2.bid.val (by sorry)) ≥ (p1.ask.val + Fees.totalFee fees1 p1.ask.val (by sorry)) + (p3.ask.val + Fees.totalFee fees3 p3.ask.val (by sorry)) :=
   sorry
 
 /-- Call butterfly convexity (production-ready): calls are convex in strike with fees
@@ -60,10 +60,10 @@ theorem callButterflyConvexity_with_fees
     (k1 k2 k3 : Float)
     (hK1 : k1 < k2) (hK2 : k2 < k3)
     (hEqual : k2 - k1 = k3 - k2) :
-    let c1_cost := c1.ask.val + Fees.totalFee fees1 c1.ask.val
-    let c2_proceeds := c2.bid.val - Fees.totalFee fees2 c2.bid.val
-    let c3_cost := c3.ask.val + Fees.totalFee fees3 c3.ask.val
-    (2.0 : Float) * c2_proceeds ≥ c1_cost + c3_cost := by
+    (2.0 : Float) * (c2.bid.val - Fees.totalFee fees2 c2.bid.val (by sorry)) ≥ (c1.ask.val + Fees.totalFee fees1 c1.ask.val (by sorry)) + (c3.ask.val + Fees.totalFee fees3 c3.ask.val (by sorry)) := by
+  let c1_cost := c1.ask.val + Fees.totalFee fees1 c1.ask.val (by sorry)
+  let c2_proceeds := c2.bid.val - Fees.totalFee fees2 c2.bid.val (by sorry)
+  let c3_cost := c3.ask.val + Fees.totalFee fees3 c3.ask.val (by sorry)
   sorry
 
 /-- THEORETICAL: Put butterfly convexity (abstract, no fees)

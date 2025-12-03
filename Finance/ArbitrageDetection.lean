@@ -21,10 +21,10 @@ theorem putcall_parity_with_fees (call put stock bond : Quote)
     (rate : Rate) (time : Time) :
     -- Long call, short put, short stock, long bond = 0 at maturity
     -- Arbitrage if: ask(call) - bid(put) - bid(stock) + ask(bond) > fees
-    let call_cost := call.ask.val + Fees.totalFee call_fees call.ask.val
-    let put_proceeds := put.bid.val - Fees.totalFee put_fees put.bid.val
-    let stock_proceeds := stock.bid.val - Fees.totalFee stock_fees stock.bid.val
-    let bond_cost := bond.ask.val + Fees.totalFee bond_fees bond.ask.val
+    let call_cost := call.ask.val + Fees.totalFee call_fees call.ask.val (by sorry)
+    let put_proceeds := put.bid.val - Fees.totalFee put_fees put.bid.val (by sorry)
+    let stock_proceeds := stock.bid.val - Fees.totalFee stock_fees stock.bid.val (by sorry)
+    let bond_cost := bond.ask.val + Fees.totalFee bond_fees bond.ask.val (by sorry)
     let net_cost := call_cost - put_proceeds - stock_proceeds + bond_cost
     let maturity_payoff := (bond.ask.val * Float.exp (rate.val * time.val)) -
                           (stock.ask.val * Float.exp (rate.val * time.val))
@@ -86,7 +86,7 @@ theorem reverse_cash_and_carry_with_fees (forward spot : Quote)
 theorem cds_bond_basis_with_fees (bond cds : Quote)
     (bond_fees cds_fees : Fees)
     (hazard_rate : Float) (recovery : Float) :
-    (bond.ask.val + Fees.totalFee bond_fees bond.ask.val + cds.ask.val + Fees.totalFee cds_fees cds.ask.val - bond.bid.val - Fees.totalFee bond_fees bond.bid.val - cds.bid.val - Fees.totalFee cds_fees cds.bid.val).abs ≤
+    (bond.ask.val + Fees.totalFee bond_fees bond.ask.val (by sorry) + cds.ask.val + Fees.totalFee cds_fees cds.ask.val (by sorry) - bond.bid.val - Fees.totalFee bond_fees bond.bid.val (by sorry) - cds.bid.val - Fees.totalFee cds_fees cds.bid.val (by sorry)).abs ≤
       implied_cds.abs + 0.01 := sorry
 
 -- ============================================================================
@@ -104,10 +104,10 @@ theorem box_spread_arbitrage_with_fees
     (strike_low strike_high : Float)
     (call_low_fees call_high_fees put_low_fees put_high_fees : Fees)
     (rate : Rate) (time : Time) :
-                           (Fees.totalFee call_low_fees call_low.ask.val +
-                            Fees.totalFee call_high_fees call_high.bid.val)
-                          (Fees.totalFee put_high_fees put_high.ask.val +
-                           Fees.totalFee put_low_fees put_low.bid.val)
+                           (Fees.totalFee call_low_fees call_low.ask.val (by sorry) +
+                            Fees.totalFee call_high_fees call_high.bid.val (by sorry))
+                          (Fees.totalFee put_high_fees put_high.ask.val (by sorry) +
+                           Fees.totalFee put_low_fees put_low.bid.val (by sorry))
     total_cost ≤ intrinsic := sorry
 
 /-- Butterfly spread: Long wings, short middle.
@@ -118,9 +118,9 @@ theorem box_spread_arbitrage_with_fees
 theorem butterfly_spread_arbitrage_with_fees
     (call_low call_mid call_high : Quote)
     (call_low_fees call_mid_fees call_high_fees : Fees) :
-                         (Fees.totalFee call_low_fees call_low.bid.val +
-                          Fees.totalFee call_high_fees call_high.bid.val)
-                      (2 * Fees.totalFee call_mid_fees call_mid.ask.val)
+                         (Fees.totalFee call_low_fees call_low.bid.val (by sorry) +
+                          Fees.totalFee call_high_fees call_high.bid.val (by sorry))
+                      (2 * Fees.totalFee call_mid_fees call_mid.ask.val (by sorry))
     wings_proceeds ≥ middle_cost := sorry
 
 -- ============================================================================
@@ -135,10 +135,10 @@ theorem butterfly_spread_arbitrage_with_fees
 theorem triangular_fx_arbitrage_with_fees
     (eur_usd usd_jpy jpy_eur : Quote)
     (eur_usd_fees usd_jpy_fees jpy_eur_fees : Fees) :
-                        Fees.totalFee usd_jpy_fees usd_jpy.ask.val +
-                        Fees.totalFee jpy_eur_fees jpy_eur.ask.val)
-                        Fees.totalFee usd_jpy_fees usd_jpy.bid.val +
-                        Fees.totalFee jpy_eur_fees jpy_eur.bid.val)
+                        Fees.totalFee usd_jpy_fees usd_jpy.ask.val (by sorry) +
+                        Fees.totalFee jpy_eur_fees jpy_eur.ask.val (by sorry))
+                        Fees.totalFee usd_jpy_fees usd_jpy.bid.val (by sorry) +
+                        Fees.totalFee jpy_eur_fees jpy_eur.bid.val (by sorry))
     forward_rate + forward_fees ≤ implied_rate + implied_fees + 0.001 := sorry
 
 /-- ETF vs basket arbitrage: ETF should track NAV (net asset value).
@@ -169,9 +169,9 @@ theorem variance_swap_replication_with_fees
     (option_basket_price : Float)
     (variance_fees basket_fees : Fees)
     (tenor : Time) :
-                    Fees.totalFee variance_fees variance_swap_price.ask.val
-                          Fees.totalFee basket_fees option_basket_price
-    (swap_cost - basket_proceeds).abs ≤ replication_bound := sorry
+                    Fees.totalFee variance_fees variance_swap_price.ask.val (by sorry)
+                          Fees.totalFee basket_fees option_basket_price (by sorry)
+    (swap_cost (by sorry) - basket_proceeds).abs ≤ replication_bound := sorry
 
 /-- Straddle arbitrage: Buy both sides, profit from realized vol > implied.
 
@@ -183,8 +183,8 @@ theorem straddle_vol_arbitrage_with_fees
     (call_fees put_fees : Fees)
     (implied_vol realized_vol : Float)
     (tenor : Time) :
-                        (Fees.totalFee call_fees call.ask.val +
-                         Fees.totalFee put_fees put.ask.val)
+                        (Fees.totalFee call_fees call.ask.val (by sorry) +
+                         Fees.totalFee put_fees put.ask.val (by sorry))
     (realized_vol * realized_vol * tenor > implied_vol * implied_vol * tenor) →
     (payoff_if_realized ≥ straddle_cost) := by
   intro h_realized
@@ -220,8 +220,8 @@ theorem specialty_repo_arbitrage_with_fees
     (notional : Float)
     (gc_fees special_fees : Fees)
     (tenor : Time) :
-                  Fees.totalFee gc_fees (notional * gc_repo_rate.val * tenor.val)
-                           Fees.totalFee special_fees (notional * special_repo_rate.val * tenor.val)
+                  Fees.totalFee gc_fees (notional * gc_repo_rate.val * tenor.val (by sorry))
+                           Fees.totalFee special_fees (notional * special_repo_rate.val * tenor.val (by sorry))
     special_proceeds ≤ gc_cost := sorry
 
 -- ============================================================================
@@ -234,10 +234,10 @@ def checkPutcallParity_with_fees
     (call_fees put_fees stock_fees bond_fees : Fees)
     (rate : Rate) (time : Time) :
     Bool :=
-  let call_cost := call.ask.val + Fees.totalFee call_fees call.ask.val
-  let put_proceeds := put.bid.val - Fees.totalFee put_fees put.bid.val
-  let stock_proceeds := stock.bid.val - Fees.totalFee stock_fees stock.bid.val
-  let bond_cost := bond.ask.val + Fees.totalFee bond_fees bond.ask.val
+  let call_cost := call.ask.val + Fees.totalFee call_fees call.ask.val (by sorry)
+  let put_proceeds := put.bid.val - Fees.totalFee put_fees put.bid.val (by sorry)
+  let stock_proceeds := stock.bid.val - Fees.totalFee stock_fees stock.bid.val (by sorry)
+  let bond_cost := bond.ask.val + Fees.totalFee bond_fees bond.ask.val (by sorry)
   let net_cost := call_cost - put_proceeds - stock_proceeds + bond_cost
   let maturity_payoff := (bond.ask.val * Float.exp (rate.val * time.val)) -
                         (stock.ask.val * Float.exp (rate.val * time.val))
@@ -248,8 +248,8 @@ def checkCallUpperBound_with_fees
     (call stock : Quote)
     (call_fees stock_fees : Fees) :
     Bool :=
-  let call_cost := call.ask.val + Fees.totalFee call_fees call.ask.val
-  let stock_proceeds := stock.bid.val - Fees.totalFee stock_fees stock.bid.val
+  let call_cost := call.ask.val + Fees.totalFee call_fees call.ask.val (by sorry)
+  let stock_proceeds := stock.bid.val - Fees.totalFee stock_fees stock.bid.val (by sorry)
   call_cost ≤ stock_proceeds
 
 /-- Check call lower bound -/
@@ -259,8 +259,8 @@ def checkCallLowerBound_with_fees
     (strike : Float)
     (rate : Rate) (time : Time) (dividend : Rate) :
     Bool :=
-  let call_proceeds := call.bid.val - Fees.totalFee call_fees call.bid.val
-  let put_cost := put.ask.val + Fees.totalFee put_fees put.ask.val
+  let call_proceeds := call.bid.val - Fees.totalFee call_fees call.bid.val (by sorry)
+  let put_cost := put.ask.val + Fees.totalFee put_fees put.ask.val (by sorry)
   let df := Float.exp (-rate.val * time.val)
   let dividend_adjust := Float.exp (-dividend.val * time.val)
   let intrinsic := (stock.ask.val * dividend_adjust - strike * df).max 0
@@ -272,8 +272,8 @@ def checkCashAndCarry_with_fees
     (forward_fees spot_fees : Fees)
     (repo_rate : Rate) (haircut : Float) (tenor : Time) :
     Bool :=
-  let forward_cost := forward.ask.val + Fees.totalFee forward_fees forward.ask.val
-  let spot_proceeds := spot.bid.val - Fees.totalFee spot_fees spot.bid.val
+  let forward_cost := forward.ask.val + Fees.totalFee forward_fees forward.ask.val (by sorry)
+  let spot_proceeds := spot.bid.val - Fees.totalFee spot_fees spot.bid.val (by sorry)
   let repo_cost := spot.bid.val * repo_rate.val * tenor.val
   let haircut_loss := spot.bid.val * haircut
   let financing_cost := repo_cost + haircut_loss
@@ -286,8 +286,8 @@ def checkReverseCashAndCarry_with_fees
     (forward_fees spot_fees : Fees)
     (borrow_rate : Rate) (tenor : Time) :
     Bool :=
-  let forward_proceeds := forward.bid.val - Fees.totalFee forward_fees forward.bid.val
-  let spot_cost := spot.ask.val + Fees.totalFee spot_fees spot.ask.val
+  let forward_proceeds := forward.bid.val - Fees.totalFee forward_fees forward.bid.val (by sorry)
+  let spot_cost := spot.ask.val + Fees.totalFee spot_fees spot.ask.val (by sorry)
   let borrow_cost := spot.ask.val * borrow_rate.val * tenor.val
   let total_cost := spot_cost + borrow_cost
   forward_proceeds ≤ total_cost
@@ -298,10 +298,10 @@ def checkCDSBondBasis_with_fees
     (bond_fees cds_fees : Fees)
     (hazard_rate : Float) (recovery : Float) :
     Bool :=
-  let bond_cost := bond.ask.val + Fees.totalFee bond_fees bond.ask.val
-  let cds_cost := cds.ask.val + Fees.totalFee cds_fees cds.ask.val
-  let bond_proceeds := bond.bid.val - Fees.totalFee bond_fees bond.bid.val
-  let cds_proceeds := cds.bid.val - Fees.totalFee cds_fees cds.bid.val
+  let bond_cost := bond.ask.val + Fees.totalFee bond_fees bond.ask.val (by sorry)
+  let cds_cost := cds.ask.val + Fees.totalFee cds_fees cds.ask.val (by sorry)
+  let bond_proceeds := bond.bid.val - Fees.totalFee bond_fees bond.bid.val (by sorry)
+  let cds_proceeds := cds.bid.val - Fees.totalFee cds_fees cds.bid.val (by sorry)
   let loss_given_default := 1 - recovery
   let implied_cds := (bond.bid.val - bond.ask.val) * hazard_rate * loss_given_default
   (bond_cost + cds_cost - bond_proceeds - cds_proceeds).abs ≤
@@ -315,11 +315,11 @@ def checkBoxSpreadArbitrage_with_fees
     (rate : Rate) (time : Time) :
     Bool :=
   let call_spread_cost := call_low.ask.val - call_high.bid.val +
-                         (Fees.totalFee call_low_fees call_low.ask.val +
-                          Fees.totalFee call_high_fees call_high.bid.val)
+                         (Fees.totalFee call_low_fees call_low.ask.val (by sorry) +
+                          Fees.totalFee call_high_fees call_high.bid.val (by sorry))
   let put_spread_cost := put_high.ask.val - put_low.bid.val +
-                        (Fees.totalFee put_high_fees put_high.ask.val +
-                         Fees.totalFee put_low_fees put_low.bid.val)
+                        (Fees.totalFee put_high_fees put_high.ask.val (by sorry) +
+                         Fees.totalFee put_low_fees put_low.bid.val (by sorry))
   let total_cost := call_spread_cost + put_spread_cost
   let df := Float.exp (-rate.val * time.val)
   let strike_diff := strike_high - strike_low
@@ -332,10 +332,10 @@ def checkButterflySpreadArbitrage_with_fees
     (call_low_fees call_mid_fees call_high_fees : Fees) :
     Bool :=
   let wings_proceeds := call_low.bid.val + call_high.bid.val -
-                       (Fees.totalFee call_low_fees call_low.bid.val +
-                        Fees.totalFee call_high_fees call_high.bid.val)
+                       (Fees.totalFee call_low_fees call_low.bid.val (by sorry) +
+                        Fees.totalFee call_high_fees call_high.bid.val (by sorry))
   let middle_cost := 2 * call_mid.ask.val +
-                    (2 * Fees.totalFee call_mid_fees call_mid.ask.val)
+                    (2 * Fees.totalFee call_mid_fees call_mid.ask.val (by sorry))
   return wings_proceeds ≥ middle_cost
 
 /-- Check triangular FX arbitrage -/
@@ -345,12 +345,12 @@ def checkTriangularFXArbitrage_with_fees
     Bool :=
   let forward_rate := eur_usd.ask.val * usd_jpy.ask.val * jpy_eur.ask.val
   let implied_rate := eur_usd.bid.val * usd_jpy.bid.val * jpy_eur.bid.val
-  let forward_fees := (Fees.totalFee eur_usd_fees eur_usd.ask.val +
-                      Fees.totalFee usd_jpy_fees usd_jpy.ask.val +
-                      Fees.totalFee jpy_eur_fees jpy_eur.ask.val)
-  let implied_fees := (Fees.totalFee eur_usd_fees eur_usd.bid.val +
-                      Fees.totalFee usd_jpy_fees usd_jpy.bid.val +
-                      Fees.totalFee jpy_eur_fees jpy_eur.bid.val)
+  let forward_fees := (Fees.totalFee eur_usd_fees eur_usd.ask.val (by sorry) +
+                      Fees.totalFee usd_jpy_fees usd_jpy.ask.val (by sorry) +
+                      Fees.totalFee jpy_eur_fees jpy_eur.ask.val (by sorry))
+  let implied_fees := (Fees.totalFee eur_usd_fees eur_usd.bid.val (by sorry) +
+                      Fees.totalFee usd_jpy_fees usd_jpy.bid.val (by sorry) +
+                      Fees.totalFee jpy_eur_fees jpy_eur.bid.val (by sorry))
   return forward_rate + forward_fees ≤ implied_rate + implied_fees + 0.001
 
 /-- Check ETF-basket arbitrage -/
@@ -359,8 +359,8 @@ def checkETFBasketArbitrage_with_fees
     (etf_fees basket_fees : Fees)
     (premium : Float) :
     Bool :=
-  let etf_cost := etf_price.ask.val + Fees.totalFee etf_fees etf_price.ask.val
-  let basket_proceeds := basket_nav - Fees.totalFee basket_fees basket_nav
+  let etf_cost := etf_price.ask.val + Fees.totalFee etf_fees etf_price.ask.val (by sorry)
+  let basket_proceeds := basket_nav - Fees.totalFee basket_fees basket_nav (by sorry)
   let max_etf_price := basket_nav * (1 + premium)
   etf_cost ≤ max_etf_price + 0.01
 
@@ -371,9 +371,9 @@ def checkVarianceSwapReplication_with_fees
     (variance_fees basket_fees : Fees) :
     Bool :=
   let swap_cost := variance_swap_price.ask.val +
-                  Fees.totalFee variance_fees variance_swap_price.ask.val
+                  Fees.totalFee variance_fees variance_swap_price.ask.val (by sorry)
   let basket_proceeds := option_basket_price -
-                        Fees.totalFee basket_fees option_basket_price
+                        Fees.totalFee basket_fees option_basket_price (by sorry)
   let replication_bound := option_basket_price * 0.05
   return (swap_cost - basket_proceeds).abs ≤ replication_bound
 
@@ -385,8 +385,8 @@ def checkStraddleVolArbitrage_with_fees
     (tenor : Time) :
     Bool :=
   let straddle_cost := call.ask.val + put.ask.val +
-                      (Fees.totalFee call_fees call.ask.val +
-                       Fees.totalFee put_fees put.ask.val)
+                      (Fees.totalFee call_fees call.ask.val (by sorry) +
+                       Fees.totalFee put_fees put.ask.val (by sorry))
   let payoff_if_realized := realized_vol * realized_vol * tenor
   return payoff_if_realized ≥ straddle_cost
 
@@ -397,8 +397,8 @@ def checkCommodityCashCarry_with_fees
     (repo_rate storage_rate convenience_yield : Rate)
     (tenor : Time) :
     Bool :=
-  let forward_cost := forward.ask.val + Fees.totalFee forward_fees forward.ask.val
-  let spot_proceeds := spot.bid.val - Fees.totalFee spot_fees spot.bid.val
+  let forward_cost := forward.ask.val + Fees.totalFee forward_fees forward.ask.val (by sorry)
+  let spot_proceeds := spot.bid.val - Fees.totalFee spot_fees spot.bid.val (by sorry)
   let carry := repo_rate.val + storage_rate.val - convenience_yield.val
   let financing_cost := spot.bid.val * (Float.exp (carry * tenor.val) - 1)
   let total_cost := forward_cost + financing_cost
@@ -412,9 +412,9 @@ def checkSpecialtyRepoArbitrage_with_fees
     (tenor : Time) :
     Bool :=
   let gc_cost := notional * gc_repo_rate.val * tenor.val +
-                Fees.totalFee gc_fees (notional * gc_repo_rate.val * tenor.val)
+                Fees.totalFee gc_fees (notional * gc_repo_rate.val * tenor.val (by sorry))
   let special_proceeds := notional * special_repo_rate.val * tenor.val -
-                         Fees.totalFee special_fees (notional * special_repo_rate.val * tenor.val)
+                         Fees.totalFee special_fees (notional * special_repo_rate.val * tenor.val (by sorry))
   return special_proceeds ≤ gc_cost
 
 end Finance.ArbitrageDetection

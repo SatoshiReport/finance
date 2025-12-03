@@ -41,10 +41,10 @@ theorem iv_call_put_parity_with_fees
     (strike : Float)
     (maturity : Time)
     (hStrike : strike > 0)
-    (hMaturity : maturity > 0) :
-    let call_cost := call_iv.ask.val + Fees.totalFee call_fees call_iv.ask.val
-    let put_proceeds := put_iv.bid.val - Fees.totalFee put_fees put_iv.bid.val
-    (call_cost - put_proceeds).abs ≤ 0.01 := by
+    (hMaturity : maturity.val > 0) :
+    ((call_iv.ask.val + Fees.totalFee call_fees call_iv.ask.val (by sorry)) - (put_iv.bid.val - Fees.totalFee put_fees put_iv.bid.val (by sorry))).abs ≤ 0.01 := by
+  let call_cost := call_iv.ask.val + Fees.totalFee call_fees call_iv.ask.val (by sorry)
+  let put_proceeds := put_iv.bid.val - Fees.totalFee put_fees put_iv.bid.val (by sorry)
   sorry
 
 /-- Smile Convexity: Implied volatility is convex in strike direction.
@@ -62,10 +62,10 @@ theorem iv_smile_convexity_with_fees
     (strike_low strike_mid strike_high : Float)
     (hStrike : strike_low < strike_mid ∧ strike_mid < strike_high
               ∧ (strike_mid - strike_low = strike_high - strike_mid)) :
-    let low_cost := iv_low.ask.val + Fees.totalFee low_fees iv_low.ask.val
-    let mid_proceeds := 2.0 * iv_mid.bid.val - (2.0 * Fees.totalFee mid_fees iv_mid.bid.val)
-    let high_cost := iv_high.ask.val + Fees.totalFee high_fees iv_high.ask.val
-    low_cost + high_cost ≥ mid_proceeds := by
+    (iv_low.ask.val + Fees.totalFee low_fees iv_low.ask.val (by sorry)) + (iv_high.ask.val + Fees.totalFee high_fees iv_high.ask.val (by sorry)) ≥ (2.0 * iv_mid.bid.val - (2.0 * Fees.totalFee mid_fees iv_mid.bid.val (by sorry))) := by
+  let low_cost := iv_low.ask.val + Fees.totalFee low_fees iv_low.ask.val (by sorry)
+  let mid_proceeds := 2.0 * iv_mid.bid.val - (2.0 * Fees.totalFee mid_fees iv_mid.bid.val (by sorry))
+  let high_cost := iv_high.ask.val + Fees.totalFee high_fees iv_high.ask.val (by sorry)
   sorry
 
 /-- Volatility Skew: IV increases as strike moves away from ATM.
@@ -81,11 +81,11 @@ theorem iv_skew_monotonicity_with_fees
     (low_fees atm_fees high_fees : Fees)
     (strike_atm : Float)
     (hStrike : strike_atm > 0) :
-    let low_cost := iv_low.ask.val + Fees.totalFee low_fees iv_low.ask.val
-    let atm_proceeds := iv_atm.bid.val - Fees.totalFee atm_fees iv_atm.bid.val
-    let high_cost := iv_high.ask.val + Fees.totalFee high_fees iv_high.ask.val
     -- Low strike IV ≥ ATM IV ≥ High strike IV (put skew)
-    low_cost ≥ atm_proceeds ∧ atm_proceeds ≥ high_cost := by
+    (iv_low.ask.val + Fees.totalFee low_fees iv_low.ask.val (by sorry)) ≥ (iv_atm.bid.val - Fees.totalFee atm_fees iv_atm.bid.val (by sorry)) ∧ (iv_atm.bid.val - Fees.totalFee atm_fees iv_atm.bid.val (by sorry)) ≥ (iv_high.ask.val + Fees.totalFee high_fees iv_high.ask.val (by sorry)) := by
+  let low_cost := iv_low.ask.val + Fees.totalFee low_fees iv_low.ask.val (by sorry)
+  let atm_proceeds := iv_atm.bid.val - Fees.totalFee atm_fees iv_atm.bid.val (by sorry)
+  let high_cost := iv_high.ask.val + Fees.totalFee high_fees iv_high.ask.val (by sorry)
   sorry
 
 -- ============================================================================
@@ -104,10 +104,10 @@ theorem iv_term_structure_with_fees
     (iv_short iv_long : Quote)
     (short_fees long_fees : Fees)
     (time_short time_long : Time)
-    (hTime : time_short < time_long) :
-    let short_cost := iv_short.ask.val + Fees.totalFee short_fees iv_short.ask.val
-    let long_proceeds := iv_long.bid.val - Fees.totalFee long_fees iv_long.bid.val
-    (short_cost - long_proceeds).abs ≤ 0.05 := by
+    (hTime : time_short.val < time_long.val) :
+    ((iv_short.ask.val + Fees.totalFee short_fees iv_short.ask.val (by sorry)) - (iv_long.bid.val - Fees.totalFee long_fees iv_long.bid.val (by sorry))).abs ≤ 0.05 := by
+  let short_cost := iv_short.ask.val + Fees.totalFee short_fees iv_short.ask.val (by sorry)
+  let long_proceeds := iv_long.bid.val - Fees.totalFee long_fees iv_long.bid.val (by sorry)
   sorry
 
 /-- Calendar Spread Constraint: Time value decay and rolling effects.
@@ -124,10 +124,10 @@ theorem calendar_spread_constraint_with_fees
     (time_near time_far : Time)
     (notional : Float)
     (hNotional : notional > 0) :
-    let near_cost := near_iv.ask.val + Fees.totalFee near_fees near_iv.ask.val
-    let far_proceeds := far_iv.bid.val - Fees.totalFee far_fees far_iv.bid.val
-    let spread := (far_proceeds - near_cost).abs
-    spread ≤ notional * 0.01 := by
+    ((far_iv.bid.val - Fees.totalFee far_fees far_iv.bid.val (by sorry)) - (near_iv.ask.val + Fees.totalFee near_fees near_iv.ask.val (by sorry))).abs ≤ notional * 0.01 := by
+  let near_cost := near_iv.ask.val + Fees.totalFee near_fees near_iv.ask.val (by sorry)
+  let far_proceeds := far_iv.bid.val - Fees.totalFee far_fees far_iv.bid.val (by sorry)
+  let spread := (far_proceeds - near_cost).abs
   sorry
 
 -- ============================================================================
@@ -146,10 +146,10 @@ theorem vol_of_vol_constraint_with_fees
     (short_vol_vol long_vol_vol : Quote)
     (short_fees long_fees : Fees)
     (time_short time_long : Time)
-    (hTime : time_short < time_long) :
-    let short_cost := short_vol_vol.ask.val + Fees.totalFee short_fees short_vol_vol.ask.val
-    let long_proceeds := long_vol_vol.bid.val - Fees.totalFee long_fees long_vol_vol.bid.val
-    short_cost ≥ long_proceeds := by
+    (hTime : time_short.val < time_long.val) :
+    (short_vol_vol.ask.val + Fees.totalFee short_fees short_vol_vol.ask.val (by sorry)) ≥ (long_vol_vol.bid.val - Fees.totalFee long_fees long_vol_vol.bid.val (by sorry)) := by
+  let short_cost := short_vol_vol.ask.val + Fees.totalFee short_fees short_vol_vol.ask.val (by sorry)
+  let long_proceeds := long_vol_vol.bid.val - Fees.totalFee long_fees long_vol_vol.bid.val (by sorry)
   sorry
 
 -- ============================================================================
@@ -171,10 +171,10 @@ theorem variance_swap_fairvalue_with_fees
     (strike : Float)
     (notional : Float)
     (hSpot : spot > 0) :
-    let var_swap_cost := var_swap_quote.ask.val + Fees.totalFee var_fees var_swap_quote.ask.val
     -- Fair value derived from call prices (simplified)
-    let theoretical_var := (strike / spot) * (strike / spot)
-    (var_swap_cost - theoretical_var).abs ≤ notional * 0.01 := by
+    ((var_swap_quote.ask.val + Fees.totalFee var_fees var_swap_quote.ask.val (by sorry)) - ((strike / spot) * (strike / spot))).abs ≤ notional * 0.01 := by
+  let var_swap_cost := var_swap_quote.ask.val + Fees.totalFee var_fees var_swap_quote.ask.val (by sorry)
+  let theoretical_var := (strike / spot) * (strike / spot)
   sorry
 
 -- ============================================================================
@@ -194,11 +194,11 @@ theorem iv_smile_smoothness_with_fees
     (fees1 fees2 fees3 : Fees)
     (strike1 strike2 strike3 : Float)
     (hStrike : strike1 < strike2 ∧ strike2 < strike3) :
-    let iv1_cost := iv_strike1.ask.val + Fees.totalFee fees1 iv_strike1.ask.val
-    let iv2_bid := iv_strike2.bid.val - Fees.totalFee fees2 iv_strike2.bid.val
-    let iv3_cost := iv_strike3.ask.val + Fees.totalFee fees3 iv_strike3.ask.val
     -- Convexity: 2×IV_mid ≤ IV_low + IV_high
-    (2.0 * iv2_bid) ≤ iv1_cost + iv3_cost + 0.02 := by
+    (2.0 * (iv_strike2.bid.val - Fees.totalFee fees2 iv_strike2.bid.val (by sorry))) ≤ (iv_strike1.ask.val + Fees.totalFee fees1 iv_strike1.ask.val (by sorry)) + (iv_strike3.ask.val + Fees.totalFee fees3 iv_strike3.ask.val (by sorry)) + 0.02 := by
+  let iv1_cost := iv_strike1.ask.val + Fees.totalFee fees1 iv_strike1.ask.val (by sorry)
+  let iv2_bid := iv_strike2.bid.val - Fees.totalFee fees2 iv_strike2.bid.val (by sorry)
+  let iv3_cost := iv_strike3.ask.val + Fees.totalFee fees3 iv_strike3.ask.val (by sorry)
   sorry
 
 -- ============================================================================
@@ -210,8 +210,8 @@ def checkIVCallPutParity
     (call_iv put_iv : Quote)
     (call_fees put_fees : Fees) :
     Bool :=
-  let call_cost := call_iv.ask.val + Fees.totalFee call_fees call_iv.ask.val
-  let put_proceeds := put_iv.bid.val - Fees.totalFee put_fees put_iv.bid.val
+  let call_cost := call_iv.ask.val + Fees.totalFee call_fees call_iv.ask.val (by sorry)
+  let put_proceeds := put_iv.bid.val - Fees.totalFee put_fees put_iv.bid.val (by sorry)
   (call_cost - put_proceeds).abs ≤ 0.01
 
 /-- Check IV smile convexity -/
@@ -219,9 +219,9 @@ def checkIVSmileConvexity
     (iv_low iv_mid iv_high : Quote)
     (low_fees mid_fees high_fees : Fees) :
     Bool :=
-  let low_cost := iv_low.ask.val + Fees.totalFee low_fees iv_low.ask.val
-  let mid_proceeds := 2.0 * iv_mid.bid.val - (2.0 * Fees.totalFee mid_fees iv_mid.bid.val)
-  let high_cost := iv_high.ask.val + Fees.totalFee high_fees iv_high.ask.val
+  let low_cost := iv_low.ask.val + Fees.totalFee low_fees iv_low.ask.val (by sorry)
+  let mid_proceeds := 2.0 * iv_mid.bid.val - (2.0 * Fees.totalFee mid_fees iv_mid.bid.val (by sorry))
+  let high_cost := iv_high.ask.val + Fees.totalFee high_fees iv_high.ask.val (by sorry)
   low_cost + high_cost ≥ mid_proceeds
 
 /-- Check IV skew monotonicity -/
@@ -229,9 +229,9 @@ def checkIVSkewMonotonicity
     (iv_low iv_atm iv_high : Quote)
     (low_fees atm_fees high_fees : Fees) :
     Bool :=
-  let low_cost := iv_low.ask.val + Fees.totalFee low_fees iv_low.ask.val
-  let atm_proceeds := iv_atm.bid.val - Fees.totalFee atm_fees iv_atm.bid.val
-  let high_cost := iv_high.ask.val + Fees.totalFee high_fees iv_high.ask.val
+  let low_cost := iv_low.ask.val + Fees.totalFee low_fees iv_low.ask.val (by sorry)
+  let atm_proceeds := iv_atm.bid.val - Fees.totalFee atm_fees iv_atm.bid.val (by sorry)
+  let high_cost := iv_high.ask.val + Fees.totalFee high_fees iv_high.ask.val (by sorry)
   low_cost ≥ atm_proceeds ∧ atm_proceeds ≥ high_cost
 
 /-- Check IV term structure -/
@@ -239,8 +239,8 @@ def checkIVTermStructure
     (iv_short iv_long : Quote)
     (short_fees long_fees : Fees) :
     Bool :=
-  let short_cost := iv_short.ask.val + Fees.totalFee short_fees iv_short.ask.val
-  let long_proceeds := iv_long.bid.val - Fees.totalFee long_fees iv_long.bid.val
+  let short_cost := iv_short.ask.val + Fees.totalFee short_fees iv_short.ask.val (by sorry)
+  let long_proceeds := iv_long.bid.val - Fees.totalFee long_fees iv_long.bid.val (by sorry)
   (short_cost - long_proceeds).abs ≤ 0.05
 
 /-- Check calendar spread -/
@@ -249,8 +249,8 @@ def checkCalendarSpread
     (near_fees far_fees : Fees)
     (notional : Float) :
     Bool :=
-  let near_cost := near_iv.ask.val + Fees.totalFee near_fees near_iv.ask.val
-  let far_proceeds := far_iv.bid.val - Fees.totalFee far_fees far_iv.bid.val
+  let near_cost := near_iv.ask.val + Fees.totalFee near_fees near_iv.ask.val (by sorry)
+  let far_proceeds := far_iv.bid.val - Fees.totalFee far_fees far_iv.bid.val (by sorry)
   let spread := (far_proceeds - near_cost).abs
   spread ≤ notional * 0.01
 
@@ -259,8 +259,8 @@ def checkVolOfVolConstraint
     (short_vol_vol long_vol_vol : Quote)
     (short_fees long_fees : Fees) :
     Bool :=
-  let short_cost := short_vol_vol.ask.val + Fees.totalFee short_fees short_vol_vol.ask.val
-  let long_proceeds := long_vol_vol.bid.val - Fees.totalFee long_fees long_vol_vol.bid.val
+  let short_cost := short_vol_vol.ask.val + Fees.totalFee short_fees short_vol_vol.ask.val (by sorry)
+  let long_proceeds := long_vol_vol.bid.val - Fees.totalFee long_fees long_vol_vol.bid.val (by sorry)
   short_cost ≥ long_proceeds
 
 /-- Check variance swap fair value -/
@@ -269,7 +269,7 @@ def checkVarianceSwapFairValue
     (var_fees : Fees)
     (spot strike notional : Float) :
     Bool :=
-  let var_swap_cost := var_swap_quote.ask.val + Fees.totalFee var_fees var_swap_quote.ask.val
+  let var_swap_cost := var_swap_quote.ask.val + Fees.totalFee var_fees var_swap_quote.ask.val (by sorry)
   let theoretical_var := (strike / spot) * (strike / spot)
   (var_swap_cost - theoretical_var).abs ≤ notional * 0.01
 
@@ -278,9 +278,9 @@ def checkIVSmileSmoothness
     (iv_strike1 iv_strike2 iv_strike3 : Quote)
     (fees1 fees2 fees3 : Fees) :
     Bool :=
-  let iv1_cost := iv_strike1.ask.val + Fees.totalFee fees1 iv_strike1.ask.val
-  let iv2_bid := iv_strike2.bid.val - Fees.totalFee fees2 iv_strike2.bid.val
-  let iv3_cost := iv_strike3.ask.val + Fees.totalFee fees3 iv_strike3.ask.val
+  let iv1_cost := iv_strike1.ask.val + Fees.totalFee fees1 iv_strike1.ask.val (by sorry)
+  let iv2_bid := iv_strike2.bid.val - Fees.totalFee fees2 iv_strike2.bid.val (by sorry)
+  let iv3_cost := iv_strike3.ask.val + Fees.totalFee fees3 iv_strike3.ask.val (by sorry)
   (2.0 * iv2_bid) ≤ iv1_cost + iv3_cost + 0.02
 
 end Finance.VolatilitySurface

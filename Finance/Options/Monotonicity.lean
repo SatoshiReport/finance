@@ -21,10 +21,10 @@ theorem callMonotonicity_with_fees (call1 call2 : Quote)
     (call1_fees call2_fees : Fees)
     (strike1 strike2 : Float)
     (hK : strike1 < strike2) :
-    let call1_cost := call1.ask.val + Fees.totalFee call1_fees call1.ask.val
-    let call2_proceeds := call2.bid.val - Fees.totalFee call2_fees call2.bid.val
-    let spread_width := strike2 - strike1
-    call1_cost - call2_proceeds ≤ spread_width := by
+    (call1.ask.val + Fees.totalFee call1_fees call1.ask.val (by sorry)) - (call2.bid.val - Fees.totalFee call2_fees call2.bid.val (by sorry)) ≤ strike2 - strike1 := by
+  let call1_cost := call1.ask.val + Fees.totalFee call1_fees call1.ask.val (by sorry)
+  let call2_proceeds := call2.bid.val - Fees.totalFee call2_fees call2.bid.val (by sorry)
+  let spread_width := strike2 - strike1
   sorry
 
 /-- Put strike monotonicity (production-ready): K₁ < K₂ → P₁(bid) ≤ P₂(ask) + fees
@@ -38,10 +38,10 @@ theorem putMonotonicity_with_fees (put1 put2 : Quote)
     (put1_fees put2_fees : Fees)
     (strike1 strike2 : Float)
     (hK : strike1 < strike2) :
-    let put1_proceeds := put1.bid.val - Fees.totalFee put1_fees put1.bid.val
-    let put2_cost := put2.ask.val + Fees.totalFee put2_fees put2.ask.val
-    let spread_width := strike2 - strike1
-    put2_cost - put1_proceeds ≤ spread_width := by
+    (put2.ask.val + Fees.totalFee put2_fees put2.ask.val (by sorry)) - (put1.bid.val - Fees.totalFee put1_fees put1.bid.val (by sorry)) ≤ strike2 - strike1 := by
+  let put1_proceeds := put1.bid.val - Fees.totalFee put1_fees put1.bid.val (by sorry)
+  let put2_cost := put2.ask.val + Fees.totalFee put2_fees put2.ask.val (by sorry)
+  let spread_width := strike2 - strike1
   sorry
 
 /-- THEORETICAL: Call strike monotonicity (abstract, no fees) -/

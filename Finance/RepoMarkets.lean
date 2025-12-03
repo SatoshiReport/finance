@@ -59,11 +59,13 @@ theorem repo_forward_parity_with_quotes (forward spot : Quote)
     (repo_rate haircut tenor : Float)
     (hHaircut : 0 ≤ haircut ∧ haircut ≤ 1)
     (hTenor : tenor > 0) :
-    let spot_cost := spot.ask.val + Fees.totalFee spot_fees spot.ask.val
-    let forward_proceeds := forward.bid.val - Fees.totalFee forward_fees forward.bid.val
-    let repo_financing := spot_cost * (repo_rate * tenor + haircut)
-    let effective_forward := spot_cost + repo_financing
-    forward_proceeds ≥ effective_forward - 0.01 * spot_cost := by
+    forward.bid.val - Fees.totalFee forward_fees forward.bid.val (by sorry) ≥
+    (spot.ask.val + Fees.totalFee spot_fees spot.ask.val (by sorry)) * (1 + repo_rate * tenor + haircut) -
+    0.01 * (spot.ask.val + Fees.totalFee spot_fees spot.ask.val (by sorry)) := by
+  let spot_cost := spot.ask.val + Fees.totalFee spot_fees spot.ask.val (by sorry)
+  let forward_proceeds := forward.bid.val - Fees.totalFee forward_fees forward.bid.val (by sorry)
+  let repo_financing := spot_cost * (repo_rate * tenor + haircut)
+  let effective_forward := spot_cost + repo_financing
   sorry
 
 /-- THEORETICAL: Cash-and-carry parity (abstract, no fees/bid-ask)
@@ -73,8 +75,8 @@ theorem repo_forward_parity_theoretical (forward_price spot_price repo_rate hair
     (hSpot : spot_price > 0)
     (hHaircut : 0 ≤ haircut ∧ haircut ≤ 1)
     (hTenor : tenor > 0) :
-    let theoretical_forward := spot_price * (1 + repo_rate * tenor - haircut)
-    (forward_price - theoretical_forward).abs ≤ spot_price * 0.001 := by
+    (forward_price - (spot_price * (1 + repo_rate * tenor - haircut))).abs ≤ spot_price * 0.001 := by
+  let theoretical_forward := spot_price * (1 + repo_rate * tenor - haircut)
   sorry
 
 /-- Reverse repo relationship: Reverse repo rate ≤ repo rate (usually equal).
@@ -287,8 +289,8 @@ def checkRepoForwardParity_with_quotes
     (forward_fees spot_fees : Fees)
     (repo_rate haircut tenor : Float) :
     Bool :=
-  let spot_cost := spot.ask.val + Fees.totalFee spot_fees spot.ask.val
-  let forward_proceeds := forward.bid.val - Fees.totalFee forward_fees forward.bid.val
+  let spot_cost := spot.ask.val + Fees.totalFee spot_fees spot.ask.val (by sorry)
+  let forward_proceeds := forward.bid.val - Fees.totalFee forward_fees forward.bid.val (by sorry)
   let repo_financing := spot_cost * (repo_rate * tenor + haircut)
   let effective_forward := spot_cost + repo_financing
   forward_proceeds ≥ effective_forward - 0.01 * spot_cost

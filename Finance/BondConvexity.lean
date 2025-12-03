@@ -25,10 +25,10 @@ theorem bond_price_convexity_with_fees
     (hEqual : yield_mid - yield_low = yield_high - yield_mid) :
     -- Bond prices: wings should be ≥ 2×middle (convex)
     let wings_proceeds := bond_low.bid.val + bond_high.bid.val -
-                         (Fees.totalFee bond_low_fees bond_low.bid.val +
-                          Fees.totalFee bond_high_fees bond_high.bid.val)
+                         (Fees.totalFee bond_low_fees bond_low.bid.val (by sorry) +
+                          Fees.totalFee bond_high_fees bond_high.bid.val (by sorry))
     let middle_cost := 2 * bond_mid.ask.val +
-                      (2 * Fees.totalFee bond_mid_fees bond_mid.ask.val)
+                      (2 * Fees.totalFee bond_mid_fees bond_mid.ask.val (by sorry))
     wings_proceeds ≥ middle_cost := sorry
 
 /-- Duration constraint: Price change ≈ -Duration × Δy × Price.
@@ -89,9 +89,9 @@ theorem yield_curve_butterfly_with_fees
     (bond_2y bond_5y bond_10y : Quote)
     (fees_2y fees_5y fees_10y : Fees)
     (hEqual : 5.0 - 2.0 = 10.0 - 5.0) :  -- Equidistant tenors
-                         (Fees.totalFee fees_2y bond_2y.bid.val +
-                          Fees.totalFee fees_10y bond_10y.bid.val)
-                      (2 * Fees.totalFee fees_5y bond_5y.ask.val)
+                         (Fees.totalFee fees_2y bond_2y.bid.val (by sorry) +
+                          Fees.totalFee fees_10y bond_10y.bid.val (by sorry))
+                      (2 * Fees.totalFee fees_5y bond_5y.ask.val (by sorry))
     wings_proceeds ≥ middle_cost := sorry
 
 /-- Negative butterfly impossibility: Can't have concave yield curve.
@@ -105,15 +105,15 @@ theorem no_double_concavity_with_fees
     (fees_3m fees_6m fees_1y fees_2y : Fees) :
     -- Both 3m-6m-1y and 6m-1y-2y can't be concave simultaneously
     let butterfly1_proceeds := bond_3m.bid.val + bond_1y.bid.val -
-                             (Fees.totalFee fees_3m bond_3m.bid.val +
-                              Fees.totalFee fees_1y bond_1y.bid.val)
+                             (Fees.totalFee fees_3m bond_3m.bid.val (by sorry) +
+                              Fees.totalFee fees_1y bond_1y.bid.val (by sorry))
     let butterfly1_cost := 2 * bond_6m.ask.val +
-                          (2 * Fees.totalFee fees_6m bond_6m.ask.val)
+                          (2 * Fees.totalFee fees_6m bond_6m.ask.val (by sorry))
     let butterfly2_proceeds := bond_6m.bid.val + bond_2y.bid.val -
-                             (Fees.totalFee fees_6m bond_6m.bid.val +
-                              Fees.totalFee fees_2y bond_2y.bid.val)
+                             (Fees.totalFee fees_6m bond_6m.bid.val (by sorry) +
+                              Fees.totalFee fees_2y bond_2y.bid.val (by sorry))
     let butterfly2_cost := 2 * bond_1y.ask.val +
-                          (2 * Fees.totalFee fees_1y bond_1y.ask.val)
+                          (2 * Fees.totalFee fees_1y bond_1y.ask.val (by sorry))
     butterfly1_proceeds ≥ butterfly1_cost ∨ butterfly2_proceeds ≥ butterfly2_cost := sorry
 
 -- ============================================================================
@@ -130,8 +130,8 @@ theorem callable_bond_upper_bound_with_fees
     (callable_bond straight_bond : Quote)
     (callable_fees straight_fees : Fees)
     (call_strike : Float) :
-                        Fees.totalFee callable_fees callable_bond.ask.val
-                            Fees.totalFee straight_fees straight_bond.bid.val
+                        Fees.totalFee callable_fees callable_bond.ask.val (by sorry)
+                            Fees.totalFee straight_fees straight_bond.bid.val (by sorry)
     callable_cost ≤ straight_proceeds := sorry
 
 /-- Negative convexity: Callable bond has convexity < straight bond.
@@ -199,8 +199,8 @@ theorem bond_futures_basis_with_fees
     (conversion_factor repo_rate haircut : Float)
     (tenor : Time)
     (hCF : conversion_factor > 0) :
-                    Fees.totalFee spot_fees spot_bond.ask.val
-                           Fees.totalFee futures_fees (futures_price.bid.val * conversion_factor)
+                    Fees.totalFee spot_fees spot_bond.ask.val (by sorry)
+                           Fees.totalFee futures_fees (futures_price.bid.val (by sorry) * conversion_factor)
     spot_cost + financing_cost ≤ futures_proceeds + 0.01 := sorry
 
 -- ============================================================================
@@ -245,11 +245,11 @@ def checkBondButterflyConvexity
     (bond_low_fees bond_mid_fees bond_high_fees : Fees) :
     Bool :=
   let wings_proceeds := bond_low.bid.val + bond_high.bid.val -
-                       (Fees.totalFee bond_low_fees bond_low.bid.val +
-                        Fees.totalFee bond_high_fees bond_high.bid.val)
+                       (Fees.totalFee bond_low_fees bond_low.bid.val (by sorry) +
+                        Fees.totalFee bond_high_fees bond_high.bid.val (by sorry))
   let middle_cost := 2 * bond_mid.ask.val +
-                    (2 * Fees.totalFee bond_mid_fees bond_mid.ask.val)
-  return wings_proceeds ≥ middle_cost
+                    (2 * Fees.totalFee bond_mid_fees bond_mid.ask.val (by sorry))
+  wings_proceeds ≥ middle_cost
 
 /-- Check duration price constraint -/
 def checkDurationConstraint
@@ -283,11 +283,11 @@ def checkYieldCurveButterfly
     (fees_2y fees_5y fees_10y : Fees) :
     Bool :=
   let wings_proceeds := bond_2y.bid.val + bond_10y.bid.val -
-                       (Fees.totalFee fees_2y bond_2y.bid.val +
-                        Fees.totalFee fees_10y bond_10y.bid.val)
+                       (Fees.totalFee fees_2y bond_2y.bid.val (by sorry) +
+                        Fees.totalFee fees_10y bond_10y.bid.val (by sorry))
   let middle_cost := 2 * bond_5y.ask.val +
-                    (2 * Fees.totalFee fees_5y bond_5y.ask.val)
-  return wings_proceeds ≥ middle_cost
+                    (2 * Fees.totalFee fees_5y bond_5y.ask.val (by sorry))
+  wings_proceeds ≥ middle_cost
 
 /-- Check no double concavity constraint -/
 def checkNoDoubleConcavity
@@ -295,16 +295,16 @@ def checkNoDoubleConcavity
     (fees_3m fees_6m fees_1y fees_2y : Fees) :
     Bool :=
   let butterfly1_proceeds := bond_3m.bid.val + bond_1y.bid.val -
-                           (Fees.totalFee fees_3m bond_3m.bid.val +
-                            Fees.totalFee fees_1y bond_1y.bid.val)
+                           (Fees.totalFee fees_3m bond_3m.bid.val (by sorry) +
+                            Fees.totalFee fees_1y bond_1y.bid.val (by sorry))
   let butterfly1_cost := 2 * bond_6m.ask.val +
-                        (2 * Fees.totalFee fees_6m bond_6m.ask.val)
+                        (2 * Fees.totalFee fees_6m bond_6m.ask.val (by sorry))
   let butterfly2_proceeds := bond_6m.bid.val + bond_2y.bid.val -
-                           (Fees.totalFee fees_6m bond_6m.bid.val +
-                            Fees.totalFee fees_2y bond_2y.bid.val)
+                           (Fees.totalFee fees_6m bond_6m.bid.val (by sorry) +
+                            Fees.totalFee fees_2y bond_2y.bid.val (by sorry))
   let butterfly2_cost := 2 * bond_1y.ask.val +
-                        (2 * Fees.totalFee fees_1y bond_1y.ask.val)
-  return butterfly1_proceeds ≥ butterfly1_cost ∨ butterfly2_proceeds ≥ butterfly2_cost
+                        (2 * Fees.totalFee fees_1y bond_1y.ask.val (by sorry))
+  butterfly1_proceeds ≥ butterfly1_cost ∨ butterfly2_proceeds ≥ butterfly2_cost
 
 /-- Check callable bond upper bound -/
 def checkCallableBondUpperBound
@@ -312,10 +312,10 @@ def checkCallableBondUpperBound
     (callable_fees straight_fees : Fees) :
     Bool :=
   let callable_cost := callable_bond.ask.val +
-                      Fees.totalFee callable_fees callable_bond.ask.val
+                      Fees.totalFee callable_fees callable_bond.ask.val (by sorry)
   let straight_proceeds := straight_bond.bid.val -
-                          Fees.totalFee straight_fees straight_bond.bid.val
-  return callable_cost ≤ straight_proceeds
+                          Fees.totalFee straight_fees straight_bond.bid.val (by sorry)
+  callable_cost ≤ straight_proceeds
 
 /-- Check callable bond negative convexity -/
 def checkCallableNegativeConvexity
@@ -345,11 +345,11 @@ def checkBondFuturesBasis
     (tenor : Time) :
     Bool :=
   let spot_cost := spot_bond.ask.val +
-                  Fees.totalFee spot_fees spot_bond.ask.val
+                  Fees.totalFee spot_fees spot_bond.ask.val (by sorry)
   let futures_proceeds := futures_price.bid.val * conversion_factor -
-                         Fees.totalFee futures_fees (futures_price.bid.val * conversion_factor)
+                         Fees.totalFee futures_fees (futures_price.bid.val * conversion_factor) (by sorry)
   let financing_cost := spot_bond.ask.val * (repo_rate.val * tenor.val + haircut)
-  return spot_cost + financing_cost ≤ futures_proceeds + 0.01
+  spot_cost + financing_cost ≤ futures_proceeds + 0.01
 
 /-- Check bond volatility term structure -/
 def checkBondVolTermStructure

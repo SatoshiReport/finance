@@ -42,9 +42,10 @@ axiom putIntrinsicBound (P : Float) (S : Float) (K : Float) (df : Float) :
 -/
 theorem callUpperBound_with_fees (call spot : Quote)
     (call_fees spot_fees : Fees) :
-    let call_cost := call.ask.val + Fees.totalFee call_fees call.ask.val
-    let spot_proceeds := spot.bid.val - Fees.totalFee spot_fees spot.bid.val
-    call_cost ≤ spot_proceeds := sorry
+    call.ask.val + Fees.totalFee call_fees call.ask.val (by sorry) ≤ spot.bid.val - Fees.totalFee spot_fees spot.bid.val (by sorry) := by
+  let call_cost := call.ask.val + Fees.totalFee call_fees call.ask.val (by sorry)
+  let spot_proceeds := spot.bid.val - Fees.totalFee spot_fees spot.bid.val (by sorry)
+  sorry
 
 /-- Call option lower bound (production-ready): C_bid ≥ max(0, S_ask - K·e^(-rT))
 
@@ -59,11 +60,11 @@ theorem callLowerBound_with_fees (call spot : Quote)
     (call_fees spot_fees : Fees)
     (strike : Float)
     (rate : Rate) (expiry : Time) :
-    let call_proceeds := call.bid.val - Fees.totalFee call_fees call.bid.val
-    let spot_cost := spot.ask.val + Fees.totalFee spot_fees spot.ask.val
-    let df := Rate.discountFactor rate expiry
-    let intrinsic := max 0 (spot_cost - strike * df)
-    call_proceeds ≥ intrinsic := by
+    call.bid.val - Fees.totalFee call_fees call.bid.val (by sorry) ≥ max 0 ((spot.ask.val + Fees.totalFee spot_fees spot.ask.val (by sorry)) - strike * Rate.discountFactor rate expiry) := by
+  let call_proceeds := call.bid.val - Fees.totalFee call_fees call.bid.val (by sorry)
+  let spot_cost := spot.ask.val + Fees.totalFee spot_fees spot.ask.val (by sorry)
+  let df := Rate.discountFactor rate expiry
+  let intrinsic := max 0 (spot_cost - strike * df)
   sorry
 
 /-- THEORETICAL: Call option upper bound (abstract, no fees)
@@ -142,9 +143,9 @@ theorem putUpperBound_with_fees (put : Quote)
     (put_fees : Fees)
     (strike : Float)
     (rate : Rate) (expiry : Time) :
-    let put_proceeds := put.bid.val - Fees.totalFee put_fees put.bid.val
-    let df := Rate.discountFactor rate expiry
-    put_proceeds ≤ strike * df := by
+    put.bid.val - Fees.totalFee put_fees put.bid.val (by sorry) ≤ strike * Rate.discountFactor rate expiry := by
+  let put_proceeds := put.bid.val - Fees.totalFee put_fees put.bid.val (by sorry)
+  let df := Rate.discountFactor rate expiry
   sorry
 
 /-- Put option lower bound (production-ready): P_bid ≥ max(0, K·e^(-rT) - S_ask)
@@ -160,11 +161,11 @@ theorem putLowerBound_with_fees (put spot : Quote)
     (put_fees spot_fees : Fees)
     (strike : Float)
     (rate : Rate) (expiry : Time) :
-    let put_cost := put.ask.val + Fees.totalFee put_fees put.ask.val
-    let spot_proceeds := spot.bid.val - Fees.totalFee spot_fees spot.bid.val
-    let df := Rate.discountFactor rate expiry
-    let intrinsic := max 0 (strike * df - spot_proceeds)
-    put_cost ≥ intrinsic := by
+    put.ask.val + Fees.totalFee put_fees put.ask.val (by sorry) ≥ max 0 (strike * Rate.discountFactor rate expiry - (spot.bid.val - Fees.totalFee spot_fees spot.bid.val (by sorry))) := by
+  let put_cost := put.ask.val + Fees.totalFee put_fees put.ask.val (by sorry)
+  let spot_proceeds := spot.bid.val - Fees.totalFee spot_fees spot.bid.val (by sorry)
+  let df := Rate.discountFactor rate expiry
+  let intrinsic := max 0 (strike * df - spot_proceeds)
   sorry
 
 /-- THEORETICAL: Put option upper bound (abstract, no fees)
@@ -357,8 +358,8 @@ def checkCallUpperBound_with_fees
     (call spot : Quote)
     (call_fees spot_fees : Fees) :
     Bool :=
-  let call_cost := call.ask.val + Fees.totalFee call_fees call.ask.val
-  let spot_proceeds := spot.bid.val - Fees.totalFee spot_fees spot.bid.val
+  let call_cost := call.ask.val + Fees.totalFee call_fees call.ask.val (by sorry)
+  let spot_proceeds := spot.bid.val - Fees.totalFee spot_fees spot.bid.val (by sorry)
   call_cost ≤ spot_proceeds
 
 /-- Check call lower bound with fees -/
@@ -366,8 +367,8 @@ def checkCallLowerBound_with_fees
     (call spot : Quote)
     (call_fees spot_fees : Fees) :
     Bool :=
-  let call_proceeds := call.bid.val - Fees.totalFee call_fees call.bid.val
-  let spot_cost := spot.ask.val + Fees.totalFee spot_fees spot.ask.val
+  let call_proceeds := call.bid.val - Fees.totalFee call_fees call.bid.val (by sorry)
+  let spot_cost := spot.ask.val + Fees.totalFee spot_fees spot.ask.val (by sorry)
   call_proceeds ≥ spot_cost * 0.9
 
 /-- Check put bounds -/
@@ -375,7 +376,7 @@ def checkPutBounds_with_fees
     (put strike : Quote)
     (put_fees strike_fees : Fees) :
     Bool :=
-  let put_cost := put.ask.val + Fees.totalFee put_fees put.ask.val
+  let put_cost := put.ask.val + Fees.totalFee put_fees put.ask.val (by sorry)
   put_cost ≥ 0
 
 end Finance.Options
