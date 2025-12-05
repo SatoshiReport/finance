@@ -1,18 +1,10 @@
-# CLAUDE Instructions
+# Claude Agent Requirements
 
-## Project Intent
-- This repository formalizes standard chess rules in Lean 4: squares, pieces, movement, and the core game state.
-- The `Chess` library exports `Chess.Core`, `Chess.Movement`, `Chess.Game`, and a demo insulated by `Chess.Demo`.
+## Formal Proof Mandate
+- Treat executable tests as smoke checks only; every rule, parser, or helper change must include Lean proofs or lemmas that precisely encode the intended chess invariant (move legality, result finalization, draw detection, parsing round-trips, etc.).
+- Refuse to mark tasks complete until the accompanying theorems are written, type-checked, and linked from the touched modules.
+- When existing code lacks proofs, prioritize backfilling formal statements before extending features.
 
-## Testing Protocol
-- Every change must run the full Lean toolchain: `lake fmt`, `lake build`, and `lake test`.
-- The `test` executable is driven by `Test.Main` and covers board invariants, piece-target counts, pawn direction, and move-bookkeeping logic.
-- Keep the tests updated whenever new functionality is added so that `lake test` continues to exercise `Chess.Core`, `Chess.Movement`, and `Chess.Game`.
-
-## CI Expectations
-- `ci.sh` stages work, uses Claude to craft a commit message, and pushes after running fmt/build/test.
-- Since `lake test` now succeeds with the Chess test driver, the CI script assumes those commands pass before committing.
-
-## Development Notes
-- Lean’s built-in decidables are leveraged for filtering square lists, so new predicates should remain decidable to keep the demo/test harness working.
-- When adding new executables or modules, update `lakefile.lean` and rerun `lake fmt/test`.
+## Workflow Expectations
+- Run `lake build` and `lake test` (plus `RUN_SLOW_TESTS=1 lake test` when changes affect SAN/PGN/perft) after adding proofs to ensure both code and theorems compile.
+- Document each proof you add in the PR description and cite the Lean declarations that establish the required behavior.

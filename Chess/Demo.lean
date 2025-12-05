@@ -1,24 +1,34 @@
 import Chess.Core
 import Chess.Movement
 import Chess.Game
+import Chess.Rules
+import Chess.Parsing
 
 open Chess
 open Movement
 open Game
+open Rules
+open Parsing
 
-def demoCenter : Square := Square.mkUnsafe 4 4
-def demoPawn : Piece := { pieceType := PieceType.Pawn, color := Color.White }
-def demoSource : Square := Square.mkUnsafe 4 1 -- e2
-def demoDestination : Square := Square.mkUnsafe 4 3 -- e4
-def demoMove : Move :=
-  { piece := demoPawn, from := demoSource, to := demoDestination, isCapture := false }
+def demoStart : GameState := standardGameState
+def demoStartFen : String := toFEN demoStart
 
-def demoGame : GameState := GameState.default
-def demoAfterMove : GameState := demoGame.movePiece demoMove
+def demoScholarsPGN : String :=
+  "[Event \"Scholars\"]\n\n1. e4 e5 2. Qh5 Nc6 3. Bc4 Nf6 4. Qxf7#"
 
-#eval demoCenter.algebraic
-#eval kingTargets demoCenter |>.map Square.algebraic
-#eval knightTargets demoCenter |>.map Square.algebraic
-#eval demoAfterMove.toMove
-#eval demoAfterMove.halfMoveClock
-#eval demoAfterMove.fullMoveNumber
+def demoAfterE4 : Except String GameState := applySAN demoStart "e4"
+def demoAfterScholars : Except String GameState := playPGN demoScholarsPGN
+
+def demoPerftDepths : List Nat := [1, 2, 3]
+def demoPerftResults : List (Nat × Nat) :=
+  demoPerftDepths.map (fun d => (d, perft standardGameState d))
+
+#eval demoStartFen
+#eval demoStart.legalMoves.length
+#eval match demoAfterE4 with
+  | .ok gs => toFEN gs
+  | .error e => s!"SAN apply failed: {e}"
+#eval match demoAfterScholars with
+  | .ok gs => (toFEN gs, isCheckmate gs, isStalemate gs)
+  | .error e => s!"PGN failed: {e}"
+#eval demoPerftResults
